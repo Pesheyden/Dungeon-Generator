@@ -13,39 +13,53 @@ public class DungeonGenerator : MonoBehaviour
 
     private void Start()
     {
-        StartCoroutine(TraverseSpilt(_dungeon, true));
+        StartCoroutine(TraverseSpilt(_dungeon, false));
     }
 
     private IEnumerator TraverseSpilt(RectInt rawRoom, bool doHorizontalSplit)
     {
         RectInt newRoom1;
         RectInt newRoom2;
-        
+
         if (doHorizontalSplit)
         {
-            if (rawRoom.width / 2 < _minimalRoomSize.x)
-            {
-                _debugRooms.Add(rawRoom);
-                yield break;
-            }
+            newRoom1 = new RectInt(
+                rawRoom.x,
+                rawRoom.y,
+                rawRoom.width,
+                rawRoom.height / 2  + _wallWidth / 2);
 
-            newRoom1 = new RectInt(rawRoom.x, rawRoom.y, rawRoom.width, rawRoom.height + _wallWidth / 2);
-            newRoom2 = new RectInt(rawRoom.x + rawRoom.width / 2 - _wallWidth / 2, rawRoom.y, 
-                rawRoom.width, rawRoom.height + _wallWidth / 2);
+            newRoom2 = new RectInt(
+                rawRoom.x,
+                rawRoom.y + rawRoom.height / 2 - _wallWidth / 2,
+                rawRoom.width,
+                rawRoom.height / 2 + _wallWidth / 2);
         }
         else
         {
-            if (rawRoom.height / 2 < _minimalRoomSize.y)
-            {
-                _debugRooms.Add(rawRoom);
-                yield break;
-            }
-            newRoom1 = new RectInt(rawRoom.x, rawRoom.y, rawRoom.width / 2 + _wallWidth / 2, rawRoom.height);
-            newRoom2 = new RectInt(rawRoom.x + rawRoom.width / 2 - _wallWidth / 2, rawRoom.y, 
-                rawRoom.width / 2 + _wallWidth / 2, rawRoom.height);
+            newRoom1 = new RectInt(
+                rawRoom.x,
+                rawRoom.y,
+                rawRoom.width / 2  + _wallWidth / 2,
+                rawRoom.height);
+
+            newRoom2 = new RectInt(
+                rawRoom.x + rawRoom.width / 2 - _wallWidth / 2,
+                rawRoom.y,
+                rawRoom.width / 2 + _wallWidth / 2,
+                rawRoom.height);
         }
+
+        if (newRoom1.width < _minimalRoomSize.x || newRoom1.height < _minimalRoomSize.y)
+            yield break;
+        if(newRoom2.width < _minimalRoomSize.x || newRoom2.height < _minimalRoomSize.y)
+            yield break;
+        
+        
+        _debugRooms.Add(newRoom1);
+        _debugRooms.Add(newRoom2);
+        Debug.Log(newRoom1 + " " + newRoom2);
         yield return new WaitForSeconds(1f);
-        _debugRooms.Add(rawRoom);
         StartCoroutine(TraverseSpilt(newRoom1, !doHorizontalSplit));
         StartCoroutine(TraverseSpilt(newRoom2, !doHorizontalSplit));
 
@@ -57,5 +71,14 @@ public class DungeonGenerator : MonoBehaviour
         {
             AlgorithmsUtils.DebugRectInt(room, Color.yellow);
         }
+
+        AlgorithmsUtils.DebugRectInt(_dungeon, Color.red);
     }
+}
+
+public class RoomNode
+{
+    public RectInt RoomValue;
+    public RoomNode Room1;
+    public RoomNode Room2;
 }
