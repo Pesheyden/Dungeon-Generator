@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using NaughtyAttributes;
 using UnityEngine;
 
@@ -10,25 +11,33 @@ public class DungeonGenerator : MonoBehaviour
     [SerializeField] private Vector2Int _minimalRoomSize;
     [SerializeField] private int _wallWidth;
 
+    [Header("Debug")] 
+    [SerializeField] private bool _debugRooms;
+    [SerializeField] private bool _debugWalls;
+
     public RoomNode RootNode;
 
-    private List<RectInt> _debugRooms = new();
-    private List<RectInt> _debugWalls = new();
+    private List<RectInt> _debugRoomsList = new();
+    private List<RectInt> _debugWallsList = new();
+
+    private int _roomsAmount = 0; 
 
     private void Awake()
     {
         //Create root node
-
         RootNode = new RoomNode(_dungeon);
     }
 
     private void Start()
     {
-        StartCoroutine(TraverseSpilt(RootNode, false));
+        TraverseSpilt(RootNode, false);
     }
 
-    private IEnumerator TraverseSpilt(RoomNode startRoom, bool doHorizontalSplit)
+    private async Task TraverseSpilt(RoomNode startRoom, bool doHorizontalSplit)
     {
+        _roomsAmount++;
+        
+        
         RectInt newRoom1;
         RectInt newRoom2;
 
@@ -64,9 +73,14 @@ public class DungeonGenerator : MonoBehaviour
 
         //If new rooms are too small - break
         if (newRoom1.width < _minimalRoomSize.x || newRoom1.height < _minimalRoomSize.y)
-            yield break;
+        {
+            return;
+        }
+
         if(newRoom2.width < _minimalRoomSize.x || newRoom2.height < _minimalRoomSize.y)
-            yield break;
+        {
+            return;
+        }
         
         //Extract wall
         RectInt newWall = AlgorithmsUtils.Intersect(newRoom1, newRoom2);
@@ -86,10 +100,9 @@ public class DungeonGenerator : MonoBehaviour
         }
         
         //Debug
-        _debugRooms.Add(newRoom1);
-        _debugRooms.Add(newRoom2);
-        _debugWalls.Add(newWall);
-        Debug.Log("Rooms:" + newRoom1 + ":!:" + newRoom2 + "Wall: " + newWall);
+        _debugRoomsList.Add(newRoom1);
+        _debugRoomsList.Add(newRoom2);
+        _debugWallsList.Add(newWall);
         
         //Filling nodes
 
@@ -100,22 +113,47 @@ public class DungeonGenerator : MonoBehaviour
         startRoom.Room2 = roomNode2;
         startRoom.WallValue = newWall;
         
+        //Debug
+        _debugRoomsList.Add(newRoom1);
+        _debugRoomsList.Add(newRoom2);
+        _debugWallsList.Add(newWall);
         
-        yield return new WaitForSeconds(1f);
-        StartCoroutine(TraverseSpilt(roomNode1, !doHorizontalSplit));
-        StartCoroutine(TraverseSpilt(roomNode2, !doHorizontalSplit));
+        await Task.Delay(100);
+        await TraverseSpilt(roomNode1, !doHorizontalSplit);
+        await TraverseSpilt(roomNode2, !doHorizontalSplit);
+    }
 
+    
+    //Traverse
+    private async Task Traverse(RoomNode inputNode)
+    {
+        if (inputNode.Room1 == null || inputNode.Room2 == null)
+        {
+            return;
+        }
+        
+        await Task.Delay(100);
+        
+        await Traverse(inputNode.Room1);
+        await Traverse(inputNode.Room2);
     }
 
     private void Update()
     {
-        foreach (var room in _debugRooms)
+        if (_debugRooms)
         {
-            AlgorithmsUtils.DebugRectInt(room, Color.yellow);
+            foreach (var room in _debugRoomsList)
+            {
+                AlgorithmsUtils.DebugRectInt(room, Color.yellow);
+            }
         }
-        foreach (var wall in _debugWalls)
+
+        if (_debugWalls)
         {
-            AlgorithmsUtils.DebugRectInt(wall, Color.blue);
+            foreach (var wall in _debugWallsList)
+            {
+                AlgorithmsUtils.DebugRectInt(wall, Color.blue);
+            }
         }
 
         AlgorithmsUtils.DebugRectInt(_dungeon, Color.red);
@@ -127,6 +165,7 @@ public class RoomNode
     public RoomNode(RectInt roomValue)
     {
         RoomValue = roomValue;
+        Room1 = Room2 = null;
     }
 
     public RectInt RoomValue;
