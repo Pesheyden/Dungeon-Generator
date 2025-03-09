@@ -1,15 +1,16 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using NaughtyAttributes;
 using UnityEngine;
+using Random = System.Random;
 
 public class DungeonGenerator : MonoBehaviour
 {
     [SerializeField] private RectInt _dungeon;
     [SerializeField] private Vector2Int _minimalRoomSize;
     [SerializeField] private int _wallWidth;
+    [SerializeField] private int _seed;
+    [SerializeField] private Vector2 _randomnessBoundaries;
 
     [Header("Debug")] 
     [SerializeField] private bool _debugRooms;
@@ -20,17 +21,30 @@ public class DungeonGenerator : MonoBehaviour
     private List<RectInt> _debugRoomsList = new();
     private List<RectInt> _debugWallsList = new();
 
-    private int _roomsAmount = 0; 
+    private int _roomsAmount = 0;
+
+    private Random _random;
 
     private void Awake()
     {
         //Create root node
         RootNode = new RoomNode(_dungeon);
+
     }
 
     private void Start()
     {
+        _random = new Random(_seed);
         TraverseSpilt(RootNode, false);
+
+    }
+
+    [Button]
+    private void Build()
+    {
+        _random = new Random(_seed);
+        TraverseSpilt(RootNode, false);
+        
     }
 
     private async Task TraverseSpilt(RoomNode startRoom, bool doHorizontalSplit)
@@ -42,42 +56,47 @@ public class DungeonGenerator : MonoBehaviour
         RectInt newRoom2;
 
         //Create new raw rooms
+        float randomNumber = (float)_random.NextDouble();
         if (doHorizontalSplit)
         {
+            int newHeight = (int)Mathf.Lerp(startRoom.RoomValue.height * _randomnessBoundaries.x, startRoom.RoomValue.height * _randomnessBoundaries.y, randomNumber);
+
             newRoom1 = new RectInt(
                 startRoom.RoomValue.x,
                 startRoom.RoomValue.y,
                 startRoom.RoomValue.width,
-                startRoom.RoomValue.height / 2  + _wallWidth / 2);
+                newHeight + _wallWidth / 2);
 
             newRoom2 = new RectInt(
                 startRoom.RoomValue.x,
-                startRoom.RoomValue.y + startRoom.RoomValue.height / 2 - _wallWidth / 2,
+                startRoom.RoomValue.y + newHeight - _wallWidth / 2,
                 startRoom.RoomValue.width,
-                startRoom.RoomValue.height / 2 + _wallWidth / 2);
+                startRoom.RoomValue.height - newHeight + _wallWidth / 2);
         }
         else
         {
+            int newWidth = (int)Mathf.Lerp(startRoom.RoomValue.width * _randomnessBoundaries.x, startRoom.RoomValue.width * _randomnessBoundaries.y, randomNumber);
+
             newRoom1 = new RectInt(
                 startRoom.RoomValue.x,
                 startRoom.RoomValue.y,
-                startRoom.RoomValue.width / 2  + _wallWidth / 2,
+                newWidth  + _wallWidth / 2,
                 startRoom.RoomValue.height);
 
             newRoom2 = new RectInt(
-                startRoom.RoomValue.x + startRoom.RoomValue.width / 2 - _wallWidth / 2,
+                startRoom.RoomValue.x + newWidth - _wallWidth / 2,
                 startRoom.RoomValue.y,
-                startRoom.RoomValue.width / 2 + _wallWidth / 2,
+                startRoom.RoomValue.width - newWidth + _wallWidth / 2,
                 startRoom.RoomValue.height);
         }
-
+        
         //If new rooms are too small - break
-        if (newRoom1.width < _minimalRoomSize.x || newRoom1.height < _minimalRoomSize.y)
+        if (newRoom1.width <= _minimalRoomSize.x || newRoom1.height <= _minimalRoomSize.y)
         {
             return;
         }
 
-        if(newRoom2.width < _minimalRoomSize.x || newRoom2.height < _minimalRoomSize.y)
+        if(newRoom2.width <= _minimalRoomSize.x || newRoom2.height <= _minimalRoomSize.y)
         {
             return;
         }
@@ -118,7 +137,7 @@ public class DungeonGenerator : MonoBehaviour
         _debugRoomsList.Add(newRoom2);
         _debugWallsList.Add(newWall);
         
-        await Task.Delay(100);
+        await Task.Delay(50);
         await TraverseSpilt(roomNode1, !doHorizontalSplit);
         await TraverseSpilt(roomNode2, !doHorizontalSplit);
     }
