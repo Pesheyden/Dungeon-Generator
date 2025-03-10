@@ -503,8 +503,8 @@ MonoBehaviour:
   _dungeon:
     x: 0
     y: 0
-    width: 400
-    height: 400
+    width: 100
+    height: 100
   _minimalRoomSize: {x: 4, y: 4}
   _wallWidth: 2
   _seed: 12

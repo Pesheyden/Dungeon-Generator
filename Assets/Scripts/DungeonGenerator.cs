@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using DelaunayTriangulation.Objects2D;
+using DelaunayTriangulation;
 using NaughtyAttributes;
 using UnityEngine;
 using Random = System.Random;
@@ -17,6 +19,10 @@ public class DungeonGenerator : MonoBehaviour
     [SerializeField] private bool _debugWalls;
 
     public RoomNode RootNode;
+    public List<RoomNode> Rooms = new();
+
+    private DTriangulation _dTriangulation;
+    private List<Edge> _edges = new();
 
     private List<RectInt> _debugRoomsList = new();
     private List<RectInt> _debugWallsList = new();
@@ -34,17 +40,15 @@ public class DungeonGenerator : MonoBehaviour
 
     private void Start()
     {
-        _random = new Random(_seed);
-        TraverseSpilt(RootNode, false);
-
+        GenerateDungeon();
     }
 
     [Button]
-    private void Build()
+    private async void GenerateDungeon()
     {
         _random = new Random(_seed);
-        TraverseSpilt(RootNode, false);
-        
+        await TraverseSpilt(RootNode, false);
+        Triangulate();
     }
 
     private async Task TraverseSpilt(RoomNode startRoom, bool doHorizontalSplit)
@@ -93,11 +97,13 @@ public class DungeonGenerator : MonoBehaviour
         //If new rooms are too small - break
         if (newRoom1.width <= _minimalRoomSize.x || newRoom1.height <= _minimalRoomSize.y)
         {
+            Rooms.Add(startRoom);
             return;
         }
 
         if(newRoom2.width <= _minimalRoomSize.x || newRoom2.height <= _minimalRoomSize.y)
         {
+            Rooms.Add(startRoom);
             return;
         }
         
@@ -136,12 +142,25 @@ public class DungeonGenerator : MonoBehaviour
         _debugRoomsList.Add(newRoom1);
         _debugRoomsList.Add(newRoom2);
         _debugWallsList.Add(newWall);
+        _debugRoomsList.Remove(startRoom.RoomValue);
         
-        await Task.Delay(50);
+        await Task.Delay(10);
         await TraverseSpilt(roomNode1, !doHorizontalSplit);
         await TraverseSpilt(roomNode2, !doHorizontalSplit);
     }
 
+    private void Triangulate()
+    {
+        List<Vertex> vertices = new List<Vertex>();
+
+        foreach (var room in Rooms) {
+            vertices.Add(new Vertex((Vector2)room.RoomValue.position + (Vector2)room.RoomValue.size / 2));
+        }
+
+        _dTriangulation = DTriangulation.Triangulate(vertices);
+
+        _edges = MinimumSpanningTree(_dTriangulation.Edges, _dTriangulation.Edges[0].A);
+    }
     
     //Traverse
     private async Task Traverse(RoomNode inputNode)
@@ -175,7 +194,83 @@ public class DungeonGenerator : MonoBehaviour
             }
         }
 
+        if (_dTriangulation != null && _dTriangulation.Edges != null)
+        {
+            foreach (var edge in _dTriangulation.Edges)
+            {
+                Debug.DrawLine(
+                    new Vector3(edge.A.Position.x, -.1f, edge.A.Position.y),
+                    new Vector3(edge.B.Position.x, -.1f, edge.B.Position.y), 
+                    Color.gray
+                    );
+            }
+
+            foreach (var vertex in _dTriangulation.Vertices)
+            {
+                DebugExtension.DebugWireSphere(
+                    new Vector3(vertex.Position.x, 0, vertex.Position.y),
+                    Color.magenta
+                );
+            }
+        }
+
+        foreach (var edge in _edges)
+        {
+            Debug.DrawLine(
+                new Vector3(edge.A.Position.x, 0, edge.A.Position.y),
+                new Vector3(edge.B.Position.x, 0, edge.B.Position.y), 
+                Color.magenta
+            );
+        }
+
         AlgorithmsUtils.DebugRectInt(_dungeon, Color.red);
+    }
+
+    public static List<Edge> MinimumSpanningTree(List<Edge> edges, Vertex start)
+    {
+        HashSet<Vertex> openSet = new HashSet<Vertex>();
+        HashSet<Vertex> closedSet = new HashSet<Vertex>();
+
+        foreach (var edge in edges)
+        {
+            openSet.Add(edge.A);
+            openSet.Add(edge.B);
+        }
+
+        closedSet.Add(start);
+
+        List<Edge> results = new List<Edge>();
+
+        while (openSet.Count > 0)
+        {
+            bool chosen = false;
+            Edge chosenEdge = null;
+            float minWeight = float.PositiveInfinity;
+
+            foreach (var edge in edges)
+            {
+                int closedVertices = 0;
+                if (!closedSet.Contains(edge.A)) closedVertices++;
+                if (!closedSet.Contains(edge.B)) closedVertices++;
+                if (closedVertices != 1) continue;
+
+                if (edge.Distance < minWeight)
+                {
+                    chosenEdge = edge;
+                    chosen = true;
+                    minWeight = edge.Distance;
+                }
+            }
+
+            if (!chosen) break;
+            results.Add(chosenEdge);
+            openSet.Remove(chosenEdge.A);
+            openSet.Remove(chosenEdge.B);
+            closedSet.Add(chosenEdge.A);
+            closedSet.Add(chosenEdge.B);
+        }
+
+        return results;
     }
 }
 
