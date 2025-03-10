@@ -17,6 +17,7 @@ public class DungeonGenerator : MonoBehaviour
     [Header("Debug")] 
     [SerializeField] private bool _debugRooms;
     [SerializeField] private bool _debugWalls;
+    [SerializeField] private bool _debugConnections;
 
     public RoomNode RootNode;
     public List<RoomNode> Rooms = new();
@@ -31,13 +32,6 @@ public class DungeonGenerator : MonoBehaviour
 
     private Random _random;
 
-    private void Awake()
-    {
-        //Create root node
-        RootNode = new RoomNode(_dungeon);
-
-    }
-
     private void Start()
     {
         GenerateDungeon();
@@ -47,11 +41,12 @@ public class DungeonGenerator : MonoBehaviour
     private async void GenerateDungeon()
     {
         _random = new Random(_seed);
-        await TraverseSpilt(RootNode, false);
+        RootNode = new RoomNode(_dungeon);
+        await RecursionSplit(RootNode, false);
         Triangulate();
     }
 
-    private async Task TraverseSpilt(RoomNode startRoom, bool doHorizontalSplit)
+    private async Task RecursionSplit(RoomNode startRoom, bool doHorizontalSplit)
     {
         _roomsAmount++;
         
@@ -95,21 +90,56 @@ public class DungeonGenerator : MonoBehaviour
         }
         
         //If new rooms are too small - break
-        if (newRoom1.width <= _minimalRoomSize.x || newRoom1.height <= _minimalRoomSize.y)
+        if(newRoom1.height <= _minimalRoomSize.y || newRoom2.height <= _minimalRoomSize.y)
         {
-            Rooms.Add(startRoom);
-            return;
-        }
+            int newWidth = (int)Mathf.Lerp(startRoom.RoomValue.width * _randomnessBoundaries.x, startRoom.RoomValue.width * _randomnessBoundaries.y, randomNumber);
 
-        if(newRoom2.width <= _minimalRoomSize.x || newRoom2.height <= _minimalRoomSize.y)
+            newRoom1 = new RectInt(
+                startRoom.RoomValue.x,
+                startRoom.RoomValue.y,
+                newWidth  + _wallWidth / 2,
+                startRoom.RoomValue.height);
+
+            newRoom2 = new RectInt(
+                startRoom.RoomValue.x + newWidth - _wallWidth / 2,
+                startRoom.RoomValue.y,
+                startRoom.RoomValue.width - newWidth + _wallWidth / 2,
+                startRoom.RoomValue.height);
+            
+            if (newRoom1.width <= _minimalRoomSize.x ||newRoom2.width <= _minimalRoomSize.x )
+            {
+                Rooms.Add(startRoom);
+                return;
+            }
+            
+        }
+        
+        if (newRoom1.width <= _minimalRoomSize.x ||newRoom2.width <= _minimalRoomSize.x )
         {
-            Rooms.Add(startRoom);
-            return;
+            int newHeight = (int)Mathf.Lerp(startRoom.RoomValue.height * _randomnessBoundaries.x, startRoom.RoomValue.height * _randomnessBoundaries.y, randomNumber);
+
+            newRoom1 = new RectInt(
+                startRoom.RoomValue.x,
+                startRoom.RoomValue.y,
+                startRoom.RoomValue.width,
+                newHeight + _wallWidth / 2);
+
+            newRoom2 = new RectInt(
+                startRoom.RoomValue.x,
+                startRoom.RoomValue.y + newHeight - _wallWidth / 2,
+                startRoom.RoomValue.width,
+                startRoom.RoomValue.height - newHeight + _wallWidth / 2);
+
+            if (newRoom1.height <= _minimalRoomSize.y || newRoom2.height <= _minimalRoomSize.y)
+            {
+                Rooms.Add(startRoom);
+                return;
+            }
         }
         
         //Extract wall
-        RectInt newWall = AlgorithmsUtils.Intersect(newRoom1, newRoom2);
-        
+        /*RectInt newWall = AlgorithmsUtils.Intersect(newRoom1, newRoom2);
+
         //Remove wall from rooms
         if (doHorizontalSplit)
         {
@@ -122,31 +152,25 @@ public class DungeonGenerator : MonoBehaviour
             newRoom1.width -= _wallWidth;
             newRoom2.width -= _wallWidth;
             newRoom2.x += _wallWidth;
-        }
-        
-        //Debug
-        _debugRoomsList.Add(newRoom1);
-        _debugRoomsList.Add(newRoom2);
-        _debugWallsList.Add(newWall);
+        }*/
         
         //Filling nodes
-
         RoomNode roomNode1 = new RoomNode(newRoom1);
         RoomNode roomNode2 = new RoomNode(newRoom2);
 
         startRoom.Room1 = roomNode1;
         startRoom.Room2 = roomNode2;
-        startRoom.WallValue = newWall;
+        //startRoom.WallValue = newWall;
         
         //Debug
         _debugRoomsList.Add(newRoom1);
         _debugRoomsList.Add(newRoom2);
-        _debugWallsList.Add(newWall);
+        //_debugWallsList.Add(newWall);
         _debugRoomsList.Remove(startRoom.RoomValue);
         
         await Task.Delay(10);
-        await TraverseSpilt(roomNode1, !doHorizontalSplit);
-        await TraverseSpilt(roomNode2, !doHorizontalSplit);
+        await RecursionSplit(roomNode1, !doHorizontalSplit);
+        await RecursionSplit(roomNode2, !doHorizontalSplit);
     }
 
     private void Triangulate()
@@ -194,33 +218,36 @@ public class DungeonGenerator : MonoBehaviour
             }
         }
 
-        if (_dTriangulation != null && _dTriangulation.Edges != null)
+        if (_debugConnections)
         {
-            foreach (var edge in _dTriangulation.Edges)
+            if (_dTriangulation != null && _dTriangulation.Edges != null)
             {
-                Debug.DrawLine(
-                    new Vector3(edge.A.Position.x, -.1f, edge.A.Position.y),
-                    new Vector3(edge.B.Position.x, -.1f, edge.B.Position.y), 
-                    Color.gray
+                foreach (var edge in _dTriangulation.Edges)
+                {
+                    Debug.DrawLine(
+                        new Vector3(edge.A.Position.x, -.1f, edge.A.Position.y),
+                        new Vector3(edge.B.Position.x, -.1f, edge.B.Position.y), 
+                        Color.gray
                     );
+                }
+
+                foreach (var vertex in _dTriangulation.Vertices)
+                {
+                    DebugExtension.DebugWireSphere(
+                        new Vector3(vertex.Position.x, 0, vertex.Position.y),
+                        Color.magenta
+                    );
+                }
             }
 
-            foreach (var vertex in _dTriangulation.Vertices)
+            foreach (var edge in _edges)
             {
-                DebugExtension.DebugWireSphere(
-                    new Vector3(vertex.Position.x, 0, vertex.Position.y),
+                Debug.DrawLine(
+                    new Vector3(edge.A.Position.x, 0, edge.A.Position.y),
+                    new Vector3(edge.B.Position.x, 0, edge.B.Position.y), 
                     Color.magenta
                 );
             }
-        }
-
-        foreach (var edge in _edges)
-        {
-            Debug.DrawLine(
-                new Vector3(edge.A.Position.x, 0, edge.A.Position.y),
-                new Vector3(edge.B.Position.x, 0, edge.B.Position.y), 
-                Color.magenta
-            );
         }
 
         AlgorithmsUtils.DebugRectInt(_dungeon, Color.red);

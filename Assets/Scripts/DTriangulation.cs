@@ -28,6 +28,10 @@ namespace DelaunayTriangulation
 
         void Triangulate()
         {
+            
+            //Create a starting triangle so all other vertexes are inside of it
+            
+            //Determine min and max vertices' positions
             float minX = Vertices[0].Position.x;
             float minY = Vertices[0].Position.y;
             float maxX = minX;
@@ -45,16 +49,21 @@ namespace DelaunayTriangulation
             float dy = maxY - minY;
             float deltaMax = Mathf.Max(dx, dy) * 2;
 
+            //Create new vertices
             Vertex p1 = new Vertex(new Vector2(minX - 1, minY - 1));
             Vertex p2 = new Vertex(new Vector2(minX - 1, maxY + deltaMax));
             Vertex p3 = new Vertex(new Vector2(maxX + deltaMax, minY - 1));
 
+            //Add triangle
             Triangles.Add(new Triangle(p1, p2, p3));
 
+            //Triangulate
+            //Loop through all vertices 
             foreach (var vertex in Vertices)
             {
                 List<Edge> polygon = new List<Edge>();
 
+                //Check if vertex is inside the existing triangle. If yes divide it into edges
                 foreach (var t in Triangles)
                 {
                     if (t.CircumCircleContains(vertex.Position))
@@ -68,6 +77,7 @@ namespace DelaunayTriangulation
 
                 Triangles.RemoveAll((Triangle t) => t.IsBad);
 
+                //Remove almost equal edges
                 for (int i = 0; i < polygon.Count; i++)
                 {
                     for (int j = i + 1; j < polygon.Count; j++)
@@ -82,15 +92,18 @@ namespace DelaunayTriangulation
 
                 polygon.RemoveAll((Edge e) => e.IsBad);
 
+                //Create new triangles
                 foreach (var edge in polygon)
                 {
                     Triangles.Add(new Triangle(edge.A, edge.B, vertex));
                 }
             }
 
+            //Remove all triangles that were formed with vertices of the starting one
             Triangles.RemoveAll((Triangle t) =>
                 t.ContainsVertex(p1.Position) || t.ContainsVertex(p2.Position) || t.ContainsVertex(p3.Position));
 
+            //Fill Edges list with unique edges 
             HashSet<Edge> edgeSet = new HashSet<Edge>();
 
             foreach (var t in Triangles)
