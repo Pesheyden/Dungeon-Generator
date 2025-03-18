@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using DelaunayTriangulation.Links;
 using UnityEngine;
 using DelaunayTriangulation.Objects2D;
 
@@ -17,10 +18,10 @@ namespace DelaunayTriangulation
             Triangles = new List<Triangle>();
         }
 
-        public static DTriangulation Triangulate(List<Vertex> vertices)
+        public static DTriangulation Triangulate(Graph<GraphNode> graph)
         {
             DTriangulation d = new DTriangulation();
-            d.Vertices = new List<Vertex>(vertices);
+            d.Vertices = new List<Vertex>();
             d.Triangulate();
 
             return d;
@@ -55,7 +56,7 @@ namespace DelaunayTriangulation
             Vertex p3 = new Vertex(new Vector2(maxX + deltaMax, minY - 1));
 
             //Add triangle
-            Triangles.Add(new Triangle(p1, p2, p3));
+            //Triangles.Add(new Triangle(p1, p2, p3));
 
             //Triangulate
             //Loop through all vertices 
@@ -95,7 +96,8 @@ namespace DelaunayTriangulation
                 //Create new triangles
                 foreach (var edge in polygon)
                 {
-                    Triangles.Add(new Triangle(edge.A, edge.B, vertex));
+                    //Triangle newTriangle = new Triangle(edge.A, edge.B, vertex);
+                    //Triangles.Add(newTriangle);
                 }
             }
 
@@ -155,35 +157,61 @@ namespace DelaunayTriangulation
 
         public class Edge
         {
-            public readonly Vertex A;
-            public readonly Vertex B;
+            public readonly GraphNode A;
+            public readonly GraphNode B;
 
             public bool IsBad;
 
-            public Edge(Vertex a, Vertex b)
+            public Edge(GraphNode a, GraphNode b)
             {
                 A = a;
                 B = b;
             }
 
-            public float Distance => Vector2.Distance(A.Position, B.Position);
+            public float Distance => Vector2.Distance(A.Vertex.Position, B.Vertex.Position);
+            public static bool operator ==(Edge left, Edge right) {
+                return (left.A == right.A || left.A == right.B)
+                       && (left.B == right.A || left.B == right.B);
+            }
+
+            public static bool operator !=(Edge left, Edge right) {
+                return !(left == right);
+            }
+
+            public override bool Equals(object obj) {
+                if (obj is Edge e) {
+                    return this == e;
+                }
+
+                return false;
+            }
+
+            public bool Equals(Edge e) {
+                return this == e;
+            }
+
+            public override int GetHashCode() {
+                return A.GetHashCode() ^ B.GetHashCode();
+            }
 
             public static bool AlmostEqual(Edge left, Edge right)
             {
-                return Vertex.AlmostEqual(left.A, right.A) && Vertex.AlmostEqual(left.B, right.B)
-                       || Vertex.AlmostEqual(left.A, right.B) && Vertex.AlmostEqual(left.B, right.A);
+                return Vertex.AlmostEqual(left.A.Vertex, right.A.Vertex) && Vertex.AlmostEqual(left.B.Vertex, right.B.Vertex)
+                       || Vertex.AlmostEqual(left.A.Vertex, right.B.Vertex) && Vertex.AlmostEqual(left.B.Vertex, right.A.Vertex);
             }
+            
+            
         }
 
         public class Triangle
         {
-            public readonly Vertex A;
-            public readonly Vertex B;
-            public readonly Vertex C;
+            public readonly GraphNode A;
+            public readonly GraphNode B;
+            public readonly GraphNode C;
 
             public bool IsBad;
 
-            public Triangle(Vertex a, Vertex b, Vertex c)
+            public Triangle(GraphNode a, GraphNode b, GraphNode c)
             {
                 A = a;
                 B = b;
@@ -192,16 +220,16 @@ namespace DelaunayTriangulation
 
             public bool ContainsVertex(Vector2 v)
             {
-                return Vector2.Distance(v, A.Position) < 0.01f
-                       || Vector2.Distance(v, B.Position) < 0.01f
-                       || Vector2.Distance(v, C.Position) < 0.01f;
+                return Vector2.Distance(v, A.Vertex.Position) < 0.01f
+                       || Vector2.Distance(v, B.Vertex.Position) < 0.01f
+                       || Vector2.Distance(v, C.Vertex.Position) < 0.01f;
             }
 
             public bool CircumCircleContains(Vector2 v)
             {
-                Vector2 a = A.Position;
-                Vector2 b = B.Position;
-                Vector2 c = C.Position;
+                Vector2 a = A.Vertex.Position;
+                Vector2 b = B.Vertex.Position;
+                Vector2 c = C.Vertex.Position;
 
                 float oa = a.sqrMagnitude;
                 float ob = b.sqrMagnitude;
@@ -217,24 +245,86 @@ namespace DelaunayTriangulation
                 float dist = Vector2.SqrMagnitude(v - circum);
                 return dist <= circumRadius;
             }
+            public static bool operator ==(Triangle left, Triangle right) {
+                return (left.A == right.A || left.A == right.B || left.A == right.C)
+                       && (left.B == right.A || left.B == right.B || left.B == right.C)
+                       && (left.C == right.A || left.C == right.B || left.C == right.C);
+            }
+
+            public static bool operator !=(Triangle left, Triangle right) {
+                return !(left == right);
+            }
+
+            public override bool Equals(object obj) {
+                if (obj is Triangle t) {
+                    return this == t;
+                }
+
+                return false;
+            }
+
+            public bool Equals(Triangle t) {
+                return this == t;
+            }
+
+            public override int GetHashCode() {
+                return A.GetHashCode() ^ B.GetHashCode() ^ C.GetHashCode();
+            }
         }
     }
-
     namespace Links
     {
-        public class VertexLink
+        public class DualLinkedVertex
         {
             public Vertex MainVertex { get; private set; }
-            private readonly HashSet<Vertex> _connectedVertexes = new();
+            private readonly HashSet<DualLinkedVertex> _connectedVertexes = new();
 
-            public VertexLink(Vertex mainVertex)
+            public DualLinkedVertex(Vertex mainVertex)
             {
                 MainVertex = mainVertex;
             }
 
-            public bool AddConnection(Vertex newVertex) => _connectedVertexes.Add(newVertex);
-            public bool RemoveConnection(Vertex newVertex) => _connectedVertexes.Remove(newVertex);
-            public List<Vertex> GetConnections() => _connectedVertexes.ToList();
+            public bool AddConnection(DualLinkedVertex newVertex) => _connectedVertexes.Add(newVertex);
+            public bool RemoveConnection(DualLinkedVertex newVertex) => _connectedVertexes.Remove(newVertex);
+            public List<DualLinkedVertex> GetConnections() => _connectedVertexes.ToList();
+
+            public bool VertexEqual(Vertex vertex) => MainVertex == vertex;
+        }
+
+        public class GraphNode
+        {
+            public Vertex Vertex { get; protected set; }
+            public RectInt Size { get; protected set; }
+            
+        }
+
+        public class RoomGraphNode : GraphNode
+        {
+            public RoomGraphNode(RectInt size)
+            {
+                Size = size;
+
+                Vertex = new Vertex(new Vector2(size.x + (float)size.width / 2, size.y + (float)size.height / 2));
+            }
+            public RoomGraphNode(Vertex vertex, RectInt size)
+            {
+                Vertex = vertex;
+                Size = size;
+            }
+        }       
+        public class DoorGraphNode : GraphNode
+        {
+            public DoorGraphNode(RectInt size)
+            {
+                Size = size;
+                
+                Vertex = new Vertex(new Vector2(size.x + (float)size.width / 2, size.y + (float)size.height / 2));
+            }
+            public DoorGraphNode(Vertex vertex, RectInt size)
+            {
+                Vertex = vertex;
+                Size = size;
+            }
         }
     }
 }
