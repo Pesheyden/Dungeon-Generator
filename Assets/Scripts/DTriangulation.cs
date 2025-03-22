@@ -5,44 +5,28 @@ using DungeonGeneration.Graph;
 
 namespace DelaunayTriangulation
 {
-    public class DTriangulation
+    public static class DTriangulation
     {
-        public List<Vertex> Vertices { get; private set; }
-        public List<Edge> Edges { get; private set; }
-        public List<Triangle> Triangles { get; private set; }
-
-        DTriangulation()
+        public static List<Edge> Triangulate(Graph graph)
         {
-            Edges = new List<Edge>();
-            Triangles = new List<Triangle>();
-        }
-
-        public static DTriangulation Triangulate(Graph graph)
-        {
-            DTriangulation d = new DTriangulation();
-            d.Vertices = new List<Vertex>();
-            d.Triangulate();
-
-            return d;
-        }
-
-        void Triangulate()
-        {
-            
+            List<GraphNode> nodes = graph.GetNodes();
+            List<Triangle> triangles = new List<Triangle>();
+            List<Edge> edges = new List<Edge>();
+        
             //Create a starting triangle so all other vertexes are inside of it
-            
+        
             //Determine min and max vertices' positions
-            float minX = Vertices[0].Position.x;
-            float minY = Vertices[0].Position.y;
+            float minX = nodes[0].Vertex.Position.x;
+            float minY = nodes[0].Vertex.Position.y;
             float maxX = minX;
             float maxY = minY;
 
-            foreach (var vertex in Vertices)
+            foreach (var node in nodes)
             {
-                if (vertex.Position.x < minX) minX = vertex.Position.x;
-                if (vertex.Position.x > maxX) maxX = vertex.Position.x;
-                if (vertex.Position.y < minY) minY = vertex.Position.y;
-                if (vertex.Position.y > maxY) maxY = vertex.Position.y;
+                if (node.Vertex.Position.x < minX) minX = node.Vertex.Position.x;
+                if (node.Vertex.Position.x > maxX) maxX = node.Vertex.Position.x;
+                if (node.Vertex.Position.y < minY) minY = node.Vertex.Position.y;
+                if (node.Vertex.Position.y > maxY) maxY = node.Vertex.Position.y;
             }
 
             float dx = maxX - minX;
@@ -54,19 +38,24 @@ namespace DelaunayTriangulation
             Vertex p2 = new Vertex(new Vector2(minX - 1, maxY + deltaMax));
             Vertex p3 = new Vertex(new Vector2(maxX + deltaMax, minY - 1));
 
+            //Create new rooms
+            RoomGraphNode r1 = new RoomGraphNode(p1, new RectInt());
+            RoomGraphNode r2 = new RoomGraphNode(p2, new RectInt());
+            RoomGraphNode r3 = new RoomGraphNode(p3, new RectInt());
+
             //Add triangle
-            //Triangles.Add(new Triangle(p1, p2, p3));
+            triangles.Add(new Triangle(r1, r2, r3));
 
             //Triangulate
-            //Loop through all vertices 
-            foreach (var vertex in Vertices)
+            //Loop through all vertices
+            foreach (var node in nodes)
             {
                 List<Edge> polygon = new List<Edge>();
 
                 //Check if vertex is inside the existing triangle. If yes divide it into edges
-                foreach (var t in Triangles)
+                foreach (var t in triangles)
                 {
-                    if (t.CircumCircleContains(vertex.Position))
+                    if (t.CircumCircleContains(node.Vertex.Position))
                     {
                         t.IsBad = true;
                         polygon.Add(new Edge(t.A, t.B));
@@ -75,7 +64,7 @@ namespace DelaunayTriangulation
                     }
                 }
 
-                Triangles.RemoveAll((Triangle t) => t.IsBad);
+                triangles.RemoveAll((Triangle t) => t.IsBad);
 
                 //Remove almost equal edges
                 for (int i = 0; i < polygon.Count; i++)
@@ -95,39 +84,44 @@ namespace DelaunayTriangulation
                 //Create new triangles
                 foreach (var edge in polygon)
                 {
-                    //Triangle newTriangle = new Triangle(edge.A, edge.B, vertex);
-                    //Triangles.Add(newTriangle);
+                    Triangle newTriangle = new Triangle(edge.A, edge.B, node);
+                    triangles.Add(newTriangle);
                 }
             }
 
             //Remove all triangles that were formed with vertices of the starting one
-            Triangles.RemoveAll((Triangle t) =>
+            triangles.RemoveAll((Triangle t) =>
                 t.ContainsVertex(p1.Position) || t.ContainsVertex(p2.Position) || t.ContainsVertex(p3.Position));
 
-            //Fill Edges list with unique edges 
+            //Fill graph with unique doors
             HashSet<Edge> edgeSet = new HashSet<Edge>();
-
-            foreach (var t in Triangles)
+        
+            foreach (var t in triangles)
             {
                 var ab = new Edge(t.A, t.B);
+
                 var bc = new Edge(t.B, t.C);
+
                 var ca = new Edge(t.C, t.A);
 
                 if (edgeSet.Add(ab))
                 {
-                    Edges.Add(ab);
+                    edges.Add(ab);
                 }
 
                 if (edgeSet.Add(bc))
                 {
-                    Edges.Add(bc);
+                    edges.Add(bc);
+
                 }
 
                 if (edgeSet.Add(ca))
                 {
-                    Edges.Add(ca);
+                    edges.Add(ca);
                 }
             }
+
+            return edges;
         }
     }
 
