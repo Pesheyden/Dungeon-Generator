@@ -14,7 +14,7 @@ public class PopupAttributeDrawer : PropertyDrawer {
 
         var hittingControlLeftClick = Event.current.type == EventType.MouseDown && 
                                        Event.current.control && 
-                                       Event.current.button == 0;
+                                       Event.current.button == 0 ;
 
         if (hittingControlLeftClick) {
             var mouseOverLabel = totalPosition.Contains(Event.current.mousePosition) && 

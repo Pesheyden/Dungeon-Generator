@@ -500,21 +500,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 620f5d271cccb4342bc05fcf750491c3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _dungeon:
-    x: 0
-    y: 0
-    width: 200
-    height: 200
-  _minimalRoomSize: {x: 12, y: 12}
-  _wallWidth: 2
-  _seed: 4
-  _randomnessBoundaries: {x: 0.35, y: 0.65}
-  _doorSize: {x: 2, y: 2}
-  _roomsRemovePercentage: 50
-  _debugRooms: 1
-  _debugWalls: 0
-  _debugConnections: 0
-  _awaitTime: 10
+  _settings: {fileID: 11400000, guid: 6f25bc0782761474d99c0f441796d653, type: 2}
+  Rooms: []
 --- !u!4 &1561963206
 Transform:
   m_ObjectHideFlags: 0
