@@ -1,8 +1,7 @@
 using System.Collections.Generic;
-using System.Linq;
-using DelaunayTriangulation.Links;
 using UnityEngine;
 using DelaunayTriangulation.Objects2D;
+using DungeonGeneration.Graph;
 
 namespace DelaunayTriangulation
 {
@@ -18,7 +17,7 @@ namespace DelaunayTriangulation
             Triangles = new List<Triangle>();
         }
 
-        public static DTriangulation Triangulate(Graph<GraphNode> graph)
+        public static DTriangulation Triangulate(Graph graph)
         {
             DTriangulation d = new DTriangulation();
             d.Vertices = new List<Vertex>();
@@ -269,61 +268,6 @@ namespace DelaunayTriangulation
 
             public override int GetHashCode() {
                 return A.GetHashCode() ^ B.GetHashCode() ^ C.GetHashCode();
-            }
-        }
-    }
-    namespace Links
-    {
-        public class DualLinkedVertex
-        {
-            public Vertex MainVertex { get; private set; }
-            private readonly HashSet<DualLinkedVertex> _connectedVertexes = new();
-
-            public DualLinkedVertex(Vertex mainVertex)
-            {
-                MainVertex = mainVertex;
-            }
-
-            public bool AddConnection(DualLinkedVertex newVertex) => _connectedVertexes.Add(newVertex);
-            public bool RemoveConnection(DualLinkedVertex newVertex) => _connectedVertexes.Remove(newVertex);
-            public List<DualLinkedVertex> GetConnections() => _connectedVertexes.ToList();
-
-            public bool VertexEqual(Vertex vertex) => MainVertex == vertex;
-        }
-
-        public class GraphNode
-        {
-            public Vertex Vertex { get; protected set; }
-            public RectInt Size { get; protected set; }
-            
-        }
-
-        public class RoomGraphNode : GraphNode
-        {
-            public RoomGraphNode(RectInt size)
-            {
-                Size = size;
-
-                Vertex = new Vertex(new Vector2(size.x + (float)size.width / 2, size.y + (float)size.height / 2));
-            }
-            public RoomGraphNode(Vertex vertex, RectInt size)
-            {
-                Vertex = vertex;
-                Size = size;
-            }
-        }       
-        public class DoorGraphNode : GraphNode
-        {
-            public DoorGraphNode(RectInt size)
-            {
-                Size = size;
-                
-                Vertex = new Vertex(new Vector2(size.x + (float)size.width / 2, size.y + (float)size.height / 2));
-            }
-            public DoorGraphNode(Vertex vertex, RectInt size)
-            {
-                Vertex = vertex;
-                Size = size;
             }
         }
     }

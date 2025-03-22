@@ -1,11 +1,12 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using DelaunayTriangulation.Objects2D;
 using DelaunayTriangulation;
-using DelaunayTriangulation.Links;
+using DungeonGeneration.Graph;
 using NaughtyAttributes;
 using UnityEngine;
-using System.Linq;
 using Random = System.Random;
 
 public class DungeonGenerator : MonoBehaviour
@@ -16,26 +17,25 @@ public class DungeonGenerator : MonoBehaviour
     [SerializeField] private int _seed;
     [SerializeField] private Vector2 _randomnessBoundaries;
     [SerializeField] private Vector2Int _doorSize;
+    [SerializeField] private float _roomsRemovePercentage;
 
     [Header("Debug")] [SerializeField] private bool _debugRooms;
     [SerializeField] private bool _debugWalls;
     [SerializeField] private bool _debugConnections;
     [SerializeField] private int _awaitTime = 10;
-
-    public RoomNode RootNode;
-    public List<RoomNode> Rooms = new();
+    
+    public List<RectInt> Rooms;
 
     private DTriangulation _dTriangulation;
-    private List<Edge> _edges = new();
+    private List<Edge> _edges;
 
-    private List<RectInt> _debugRoomsList = new();
-    private List<RectInt> _debugWallsList = new();
-
-    private int _roomsAmount = 0;
+    private List<RectInt> _debugRoomsList;
+    private List<RectInt> _debugWallsList;
+    
 
     private Random _random;
     
-    public Graph<GraphNode> Graph = new Graph<GraphNode>(); 
+    public Graph Graph; 
 
     private void Start()
     {
@@ -45,142 +45,110 @@ public class DungeonGenerator : MonoBehaviour
     [Button]
     private async void GenerateDungeon()
     {
-        _random = new Random(_seed);
-        RootNode = new RoomNode(_dungeon);
-        await RecursionSplit(RootNode, false);
+        ResetValues();
+        await RecursionSplit(_dungeon, false);
         await FillGraph();
+        Debug.Log(Time.realtimeSinceStartup);
+    }
+
+    private void ResetValues()
+    {
+        Rooms = new();
+        _edges = new();
+        _debugRoomsList = new();
+        _debugWallsList = new();
+        Graph = new Graph();
+        _random = new Random(_seed);
+        
+        DebugDrawingBatcher.ClearCalls();
     }
 
 
-
-    private async Task RecursionSplit(RoomNode startRoom, bool doHorizontalSplit)
+    private async Task RecursionSplit(RectInt startRoom, bool doHorizontalSplit)
     {
-        _roomsAmount++;
 
 
-        RectInt newRoom1;
-        RectInt newRoom2;
-
+        ValueTuple<RectInt, RectInt> newRooms; 
         //Create new raw rooms
         float randomNumber = (float)_random.NextDouble();
         if (doHorizontalSplit)
         {
-            int newHeight = (int)Mathf.Lerp(startRoom.RoomValue.height * _randomnessBoundaries.x,
-                startRoom.RoomValue.height * _randomnessBoundaries.y, randomNumber);
-
-            newRoom1 = new RectInt(
-                startRoom.RoomValue.x,
-                startRoom.RoomValue.y,
-                startRoom.RoomValue.width,
-                newHeight + _wallWidth / 2);
-
-            newRoom2 = new RectInt(
-                startRoom.RoomValue.x,
-                startRoom.RoomValue.y + newHeight - _wallWidth / 2,
-                startRoom.RoomValue.width,
-                startRoom.RoomValue.height - newHeight + _wallWidth / 2);
+            newRooms = HorizontalSplit(startRoom, randomNumber);
         }
         else
         {
-            int newWidth = (int)Mathf.Lerp(startRoom.RoomValue.width * _randomnessBoundaries.x,
-                startRoom.RoomValue.width * _randomnessBoundaries.y, randomNumber);
-
-            newRoom1 = new RectInt(
-                startRoom.RoomValue.x,
-                startRoom.RoomValue.y,
-                newWidth + _wallWidth / 2,
-                startRoom.RoomValue.height);
-
-            newRoom2 = new RectInt(
-                startRoom.RoomValue.x + newWidth - _wallWidth / 2,
-                startRoom.RoomValue.y,
-                startRoom.RoomValue.width - newWidth + _wallWidth / 2,
-                startRoom.RoomValue.height);
+            newRooms = VerticalSplit(startRoom, randomNumber);
         }
 
         //If new rooms are too small - break
-        if (newRoom1.height <= _minimalRoomSize.y || newRoom2.height <= _minimalRoomSize.y)
+        if (newRooms.Item1.height <= _minimalRoomSize.y || newRooms.Item2.height <= _minimalRoomSize.y)
         {
-            int newWidth = (int)Mathf.Lerp(startRoom.RoomValue.width * _randomnessBoundaries.x,
-                startRoom.RoomValue.width * _randomnessBoundaries.y, randomNumber);
+            newRooms = VerticalSplit(startRoom, randomNumber);
 
-            newRoom1 = new RectInt(
-                startRoom.RoomValue.x,
-                startRoom.RoomValue.y,
-                newWidth + _wallWidth / 2,
-                startRoom.RoomValue.height);
-
-            newRoom2 = new RectInt(
-                startRoom.RoomValue.x + newWidth - _wallWidth / 2,
-                startRoom.RoomValue.y,
-                startRoom.RoomValue.width - newWidth + _wallWidth / 2,
-                startRoom.RoomValue.height);
-
-            if (newRoom1.width <= _minimalRoomSize.x || newRoom2.width <= _minimalRoomSize.x)
+            if (newRooms.Item1.width <= _minimalRoomSize.x || newRooms.Item2.width <= _minimalRoomSize.x)
             {
                 Rooms.Add(startRoom);
                 return;
             }
         }
 
-        if (newRoom1.width <= _minimalRoomSize.x || newRoom2.width <= _minimalRoomSize.x)
+        if (newRooms.Item1.width <= _minimalRoomSize.x || newRooms.Item2.width <= _minimalRoomSize.x)
         {
-            int newHeight = (int)Mathf.Lerp(startRoom.RoomValue.height * _randomnessBoundaries.x,
-                startRoom.RoomValue.height * _randomnessBoundaries.y, randomNumber);
+            newRooms = HorizontalSplit(startRoom, randomNumber);
 
-            newRoom1 = new RectInt(
-                startRoom.RoomValue.x,
-                startRoom.RoomValue.y,
-                startRoom.RoomValue.width,
-                newHeight + _wallWidth / 2);
-
-            newRoom2 = new RectInt(
-                startRoom.RoomValue.x,
-                startRoom.RoomValue.y + newHeight - _wallWidth / 2,
-                startRoom.RoomValue.width,
-                startRoom.RoomValue.height - newHeight + _wallWidth / 2);
-
-            if (newRoom1.height <= _minimalRoomSize.y || newRoom2.height <= _minimalRoomSize.y)
+            if (newRooms.Item1.height <= _minimalRoomSize.y || newRooms.Item2.height <= _minimalRoomSize.y)
             {
                 Rooms.Add(startRoom);
                 return;
             }
         }
-
-        //Extract wall
-        /*RectInt newWall = AlgorithmsUtils.Intersect(newRoom1, newRoom2);
-
-        //Remove wall from rooms
-        if (doHorizontalSplit)
-        {
-            newRoom1.height -= _wallWidth;
-            newRoom2.height -= _wallWidth;
-            newRoom2.y += _wallWidth;
-        }
-        else
-        {
-            newRoom1.width -= _wallWidth;
-            newRoom2.width -= _wallWidth;
-            newRoom2.x += _wallWidth;
-        }*/
-
-        //Filling nodes
-        RoomNode roomNode1 = new RoomNode(newRoom1);
-        RoomNode roomNode2 = new RoomNode(newRoom2);
-
-        startRoom.Room1 = roomNode1;
-        startRoom.Room2 = roomNode2;
-        //startRoom.WallValue = newWall;
 
         //Debug
-        _debugRoomsList.Add(newRoom1);
-        _debugRoomsList.Add(newRoom2);
-        //_debugWallsList.Add(newWall);
-        _debugRoomsList.Remove(startRoom.RoomValue);
+        _debugRoomsList.Add(newRooms.Item1);
+        _debugRoomsList.Add(newRooms.Item2);
+        _debugRoomsList.Remove(startRoom);
 
         await Task.Delay(_awaitTime);
-        await RecursionSplit(roomNode1, !doHorizontalSplit);
-        await RecursionSplit(roomNode2, !doHorizontalSplit);
+        await RecursionSplit(newRooms.Item1, !doHorizontalSplit);
+        await RecursionSplit(newRooms.Item2, !doHorizontalSplit);
+
+        (RectInt,RectInt) HorizontalSplit(RectInt roomNode, float f)
+        {
+            int newHeight = (int)Mathf.Lerp(roomNode.height * _randomnessBoundaries.x,
+                roomNode.height * _randomnessBoundaries.y, f);
+
+            newRooms.Item1 = new RectInt(
+                roomNode.x,
+                roomNode.y,
+                roomNode.width,
+                newHeight + _wallWidth / 2);
+
+            newRooms.Item2 = new RectInt(
+                roomNode.x,
+                roomNode.y + newHeight - _wallWidth / 2,
+                roomNode.width,
+                roomNode.height - newHeight + _wallWidth / 2);
+            return (newRooms.Item1,newRooms.Item2);
+        }
+
+        (RectInt,RectInt) VerticalSplit(RectInt startRoom1, float randomNumber1)
+        {
+            int newWidth = (int)Mathf.Lerp(startRoom1.width * _randomnessBoundaries.x,
+                startRoom1.width * _randomnessBoundaries.y, randomNumber1);
+
+            newRooms.Item1 = new RectInt(
+                startRoom1.x,
+                startRoom1.y,
+                newWidth + _wallWidth / 2,
+                startRoom1.height);
+
+            newRooms.Item2 = new RectInt(
+                startRoom1.x + newWidth - _wallWidth / 2,
+                startRoom1.y,
+                startRoom1.width - newWidth + _wallWidth / 2,
+                startRoom1.height);
+            return (newRooms.Item1,newRooms.Item2);
+        }
     }
     
     private async Task FillGraph()
@@ -344,11 +312,95 @@ public class DungeonGenerator : MonoBehaviour
                 }
             }
         }));
-
-        foreach (var node in Graph.AdjacencyList)
+        
+        DebugDrawingBatcher.BatchCall((() =>
         {
-            Debug.Log($"Node{node.Key.Vertex.Position}: {string.Join(", ", node.Value)}");
+            
+            HashSet<GraphNode> discovered = new HashSet<GraphNode>();
+            Dictionary<GraphNode, GraphNode> discoveredEdges = new Dictionary<GraphNode, GraphNode>();
+            Queue<GraphNode> Q = new Queue<GraphNode>();
+
+            var v = Graph.GetNodes()[0];
+            Q.Enqueue(v);
+            discovered.Add(v);
+
+            while (Q.Count > 0)
+            {
+                v = Q.Dequeue();
+                DebugExtension.DebugWireSphere(new Vector3(v.Vertex.Position.x, 0 ,v.Vertex.Position.y), Color.green);
+                foreach (GraphNode w in Graph.GetNeighbors(v))
+                {
+                    if (!discovered.Contains(w))
+                    {
+                        Q.Enqueue(w);
+                        discovered.Add(w);
+                        
+                    }
+                    Debug.DrawLine(new Vector3(v.Vertex.Position.x, 0 ,v.Vertex.Position.y), new Vector3(w.Vertex.Position.x, 0 ,w.Vertex.Position.y), Color.green);
+                }
+            }
+        }));
+
+        var roomNodes = Graph.GetNodes().Where(node => node is RoomGraphNode).ToList();
+        roomNodes.Sort((a, b) => (a.Size.width * a.Size.height).CompareTo(b.Size.width * b.Size.height));
+
+
+        for (int i = 0; i < roomNodes.Count * _roomsRemovePercentage / 100; i++)
+        {
+            // if (Graph.GetNeighbors(roomNodes[i]).Count <= 2)
+            //     continue;
+            
+            if(!Graph.IsConnectedWhenRemoving(roomNodes[i]))
+                continue;
+            
+            Graph.RemoveNode(roomNodes[i]);
+
+            await Task.Delay(_awaitTime);
         }
+
+        DebugDrawingBatcher.BatchCall((() =>
+        {
+            
+            HashSet<GraphNode> discovered = new HashSet<GraphNode>();
+            Dictionary<GraphNode, GraphNode> discoveredEdges = new Dictionary<GraphNode, GraphNode>();
+            Queue<GraphNode> Q = new Queue<GraphNode>();
+
+            var v = Graph.GetNodes()[0];
+            Q.Enqueue(v);
+            discovered.Add(v);
+
+            while (Q.Count > 0)
+            {
+                v = Q.Dequeue();
+                DebugExtension.DebugWireSphere(new Vector3(v.Vertex.Position.x, 0 ,v.Vertex.Position.y), Color.magenta);
+                foreach (GraphNode w in Graph.GetNeighbors(v))
+                {
+                    if (!discovered.Contains(w))
+                    {
+                        Q.Enqueue(w);
+                        discovered.Add(w);
+                        AlgorithmsUtils.DebugRectInt(w.Size, Color.green);
+                    }
+                    Debug.DrawLine(new Vector3(v.Vertex.Position.x, 0 ,v.Vertex.Position.y), new Vector3(w.Vertex.Position.x, 0 ,w.Vertex.Position.y), Color.magenta);
+                }
+            }
+        }));
+
+        var newEdges = MinimumSpanningTree(Graph);
+        var edges = Graph.GetNodes().Where(node => node is DoorGraphNode ).ToList();
+
+        foreach (var edge in newEdges)
+        {
+            edges.Remove(edge);
+        }
+
+        foreach (var edge in edges)
+        {
+            Graph.RemoveNode(edge);
+            await Task.Delay(_awaitTime);
+        }
+        
+
     }
 
     private bool GenerateDoor(RectInt room1, RectInt room2, out DoorGraphNode doorGraphNode)
@@ -400,7 +452,6 @@ public class DungeonGenerator : MonoBehaviour
         {
             AlgorithmsUtils.DebugRectInt(doorSize, Color.blue);
         }));
-        Debug.Log(doorSize + " " + intersect);
 
         doorGraphNode = new DoorGraphNode(vertex, doorSize);
 
@@ -476,52 +527,62 @@ public class DungeonGenerator : MonoBehaviour
         AlgorithmsUtils.DebugRectInt(_dungeon, Color.red);
     }
 
-    public static List<Edge> MinimumSpanningTree(List<Edge> edges, Vertex start)
+    public static List<DoorGraphNode> MinimumSpanningTree(Graph graph)
     {
         HashSet<Vertex> openSet = new HashSet<Vertex>();
         HashSet<Vertex> closedSet = new HashSet<Vertex>();
+        
+        var doorNodes = graph.GetNodes().Where(node => node is DoorGraphNode).ToList();
 
-        foreach (var edge in edges)
+        foreach (var edge in doorNodes)
         {
-            openSet.Add(edge.A.Vertex);
-            openSet.Add(edge.B.Vertex);
+            foreach (var node in graph.GetNeighbors(edge))
+            {
+                openSet.Add(node.Vertex);
+                openSet.Add(node.Vertex);
+            }
         }
 
-        closedSet.Add(start);
+        closedSet.Add(graph.GetNodeByIndex(0).Vertex);
 
-        List<Edge> results = new List<Edge>();
+        List<DoorGraphNode> results = new List<DoorGraphNode>();
 
         while (openSet.Count > 0)
         {
             bool chosen = false;
-            Edge chosenEdge = null;
+            DoorGraphNode chosenEdge = null;
             float minWeight = float.PositiveInfinity;
 
-            foreach (var edge in edges)
+            foreach (var edge  in doorNodes )
             {
                 int closedVertices = 0;
-                if (!closedSet.Contains(edge.A.Vertex)) closedVertices++;
-                if (!closedSet.Contains(edge.B.Vertex)) closedVertices++;
+                foreach (var node in graph.GetNeighbors(edge))
+                {
+                    if (!closedSet.Contains(node.Vertex)) closedVertices++;
+                }
                 if (closedVertices != 1) continue;
 
-                if (edge.Distance < minWeight)
+                if (graph.DoorEdgeDistance(edge as DoorGraphNode) < minWeight)
                 {
-                    chosenEdge = edge;
+                    chosenEdge = edge as DoorGraphNode;
                     chosen = true;
-                    minWeight = edge.Distance;
+                    minWeight = graph.DoorEdgeDistance(edge as DoorGraphNode);
                 }
             }
 
             if (!chosen) break;
             results.Add(chosenEdge);
-            openSet.Remove(chosenEdge.A.Vertex);
-            openSet.Remove(chosenEdge.B.Vertex);
-            closedSet.Add(chosenEdge.A.Vertex);
-            closedSet.Add(chosenEdge.B.Vertex);
+            foreach (var node in graph.GetNeighbors(chosenEdge))
+            {
+                openSet.Remove(node.Vertex);
+                closedSet.Add(node.Vertex);
+            }
         }
-
+        
         return results;
     }
+
+
 }
 
 public class RoomNode
