@@ -12,9 +12,8 @@ using Random = System.Random;
 
 public class DungeonGenerator : MonoBehaviour
 {
-    [Popup]
-    [Tooltip("Settings config of the dungeon. To edit use ctrl + left click")]
-    [SerializeField] private DungeonGenerationSettingsSo _settings;
+    [Popup] [Tooltip("Settings config of the dungeon. To edit use ctrl + left click")] [SerializeField]
+    private DungeonGenerationSettingsSo _settings;
 
     public List<RectInt> Rooms;
     public Graph Graph;
@@ -26,16 +25,16 @@ public class DungeonGenerator : MonoBehaviour
 
     [Button(enabledMode: EButtonEnableMode.Playmode)]
     public void DebugRooms() => DebugDrawingBatcher.ReversePauseGroup("Rooms");
-    
-    
+
+
     [Button(enabledMode: EButtonEnableMode.Playmode)]
     public void DebugGraph() => DebugDrawingBatcher.ReversePauseGroup("Graph");
-    
-    
+
+
     [Button(enabledMode: EButtonEnableMode.Playmode)]
     public void DebugDoors() => DebugDrawingBatcher.ReversePauseGroup("Doors");
-    
-    
+
+
     [Button(enabledMode: EButtonEnableMode.Playmode)]
     public void DebugFinalDungeon() => DebugDrawingBatcher.ReversePauseGroup("FinalDungeon");
 
@@ -50,6 +49,8 @@ public class DungeonGenerator : MonoBehaviour
     private async void GenerateDungeon()
     {
         ResetValues();
+
+        //Batch all rooms for debugging
         DebugDrawingBatcher.BatchCall("Rooms", () =>
         {
             foreach (var room in _debugRoomsList)
@@ -57,9 +58,12 @@ public class DungeonGenerator : MonoBehaviour
                 AlgorithmsUtils.DebugRectInt(room, Color.yellow);
             }
         });
-        await RecursionSplit(_settings.DungeonParameters, false);
-        await FillGraph();
-        
+
+
+        await Split(_settings.DungeonParameters, false); // Start split
+        await CreateGraph(); //Create a complete graph
+
+        //Batch the final dungeon for debugging
         DebugDrawingBatcher.BatchCall("FinalDungeon", () =>
         {
             HashSet<GraphNode> discovered = new HashSet<GraphNode>();
@@ -74,7 +78,7 @@ public class DungeonGenerator : MonoBehaviour
             {
                 v = Q.Dequeue();
                 DebugExtension.DebugWireSphere(new Vector3(v.Vertex.Position.x, 0, v.Vertex.Position.y), Color.red);
-                if(v is RoomGraphNode)
+                if (v is RoomGraphNode)
                     AlgorithmsUtils.DebugRectInt(v.Size, Color.red);
                 else
                     AlgorithmsUtils.DebugRectInt(v.Size, Color.blue);
@@ -101,13 +105,14 @@ public class DungeonGenerator : MonoBehaviour
     }
 
 
-    private async Task RecursionSplit(RectInt startRoom, bool doHorizontalSplit)
+    private async Task Split(RectInt startRoom, bool doHorizontalSplit)
     {
         Stack<RectInt> roomsToSplit = new Stack<RectInt>();
         roomsToSplit.Push(startRoom);
+
         while (roomsToSplit.Count > 0)
         {
-            //Create new  rooms
+            //Create new rooms
             var room = roomsToSplit.Pop();
             ValueTuple<RectInt, RectInt> newRooms;
             float randomNumber = (float)_random.NextDouble();
@@ -121,22 +126,26 @@ public class DungeonGenerator : MonoBehaviour
             }
 
             //Check room sizes
-            if (newRooms.Item1.height <= _settings.MinimalRoomSize.y || newRooms.Item2.height <= _settings.MinimalRoomSize.y)
+            if (newRooms.Item1.height <= _settings.MinimalRoomSize.y ||
+                newRooms.Item2.height <= _settings.MinimalRoomSize.y)
             {
                 newRooms = VerticalSplit(room, randomNumber);
 
-                if (newRooms.Item1.width <= _settings.MinimalRoomSize.x || newRooms.Item2.width <= _settings.MinimalRoomSize.x)
+                if (newRooms.Item1.width <= _settings.MinimalRoomSize.x ||
+                    newRooms.Item2.width <= _settings.MinimalRoomSize.x)
                 {
                     Rooms.Add(room);
                     continue;
                 }
             }
 
-            if (newRooms.Item1.width <= _settings.MinimalRoomSize.x || newRooms.Item2.width <= _settings.MinimalRoomSize.x)
+            if (newRooms.Item1.width <= _settings.MinimalRoomSize.x ||
+                newRooms.Item2.width <= _settings.MinimalRoomSize.x)
             {
                 newRooms = HorizontalSplit(room, randomNumber);
 
-                if (newRooms.Item1.height <= _settings.MinimalRoomSize.y || newRooms.Item2.height <= _settings.MinimalRoomSize.y)
+                if (newRooms.Item1.height <= _settings.MinimalRoomSize.y ||
+                    newRooms.Item2.height <= _settings.MinimalRoomSize.y)
                 {
                     Rooms.Add(room);
                     continue;
@@ -194,8 +203,9 @@ public class DungeonGenerator : MonoBehaviour
         }
     }
 
-    private async Task FillGraph()
+    private async Task CreateGraph()
     {
+        //Batch graph for debugging
         DebugDrawingBatcher.BatchCall("Graph", () =>
         {
             HashSet<GraphNode> discovered = new HashSet<GraphNode>();
@@ -223,7 +233,7 @@ public class DungeonGenerator : MonoBehaviour
                 }
             }
         });
-        
+
         //Fill graph with all created rooms
         List<Vertex> vertices = new List<Vertex>();
         foreach (var room in Rooms)
@@ -240,7 +250,7 @@ public class DungeonGenerator : MonoBehaviour
         var edgesTriangulation = DTriangulation.Triangulate(Graph);
         foreach (var edge in edgesTriangulation)
         {
-            if(GenerateDoor(edge.A.Size, edge.B.Size, out var door))
+            if (GenerateDoor(edge.A.Size, edge.B.Size, out var door))
                 Graph.AddEdge(edge.A, edge.B, door);
             await Task.Delay(_settings.DoorsGenerationAwait);
         }
@@ -283,6 +293,8 @@ public class DungeonGenerator : MonoBehaviour
         float random = (float)_random.NextDouble();
 
         RectInt doorSize;
+
+        //Check the intersection orientation and then create a door
         if (intersect.width > intersect.height)
         {
             if (intersect.width - _settings.WallWidth * 2 < _settings.DoorSize.x)
@@ -294,7 +306,8 @@ public class DungeonGenerator : MonoBehaviour
             doorSize = new RectInt
             (
                 (int)Mathf.Clamp(
-                    Mathf.Lerp(intersect.x + _settings.WallWidth, intersect.x + intersect.width - _settings.WallWidth * 2, random),
+                    Mathf.Lerp(intersect.x + _settings.WallWidth,
+                        intersect.x + intersect.width - _settings.WallWidth * 2, random),
                     intersect.x + _settings.WallWidth, intersect.x + _settings.WallWidth),
                 intersect.y,
                 _settings.DoorSize.x,
@@ -313,7 +326,8 @@ public class DungeonGenerator : MonoBehaviour
             (
                 intersect.x,
                 (int)Mathf.Clamp(
-                    Mathf.Lerp(intersect.y + _settings.WallWidth, intersect.y + intersect.height - _settings.WallWidth * 2, random),
+                    Mathf.Lerp(intersect.y + _settings.WallWidth,
+                        intersect.y + intersect.height - _settings.WallWidth * 2, random),
                     intersect.y + _settings.WallWidth, intersect.y + intersect.height - _settings.WallWidth * 2),
                 _settings.DoorSize.x,
                 _settings.DoorSize.y
@@ -322,12 +336,10 @@ public class DungeonGenerator : MonoBehaviour
 
         Vertex vertex = new Vertex(new Vector2(doorSize.x + (float)doorSize.width / 2,
             doorSize.y + (float)doorSize.height / 2));
-        DebugDrawingBatcher.BatchCall("Doors",() => { AlgorithmsUtils.DebugRectInt(doorSize, Color.blue); });
+        DebugDrawingBatcher.BatchCall("Doors", () => { AlgorithmsUtils.DebugRectInt(doorSize, Color.blue); });
 
         doorGraphNode = new DoorGraphNode(vertex, doorSize);
 
-
         return true;
     }
-    
 }
