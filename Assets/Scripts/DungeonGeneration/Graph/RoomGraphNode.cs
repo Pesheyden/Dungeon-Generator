@@ -5,6 +5,7 @@ namespace DungeonGeneration.Graph
 {
     public class RoomGraphNode : GraphNode
     {
+        public RoomNode RoomNode;
         public RoomGraphNode(RectInt size)
         {
             Size = size;
@@ -12,10 +13,10 @@ namespace DungeonGeneration.Graph
             Vertex = new Vertex(new Vector2(size.x + (float)size.width / 2, size.y + (float)size.height / 2));
         }
 
-        public RoomGraphNode(Vertex vertex, RectInt size)
+        public RoomGraphNode(Vertex vertex, RoomNode room)
         {
             Vertex = vertex;
-            Size = size;
+            RoomNode = room;
         }
     }
 }

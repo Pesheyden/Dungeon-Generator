@@ -5,7 +5,7 @@ using DungeonGeneration.Graph;
 
 namespace DelaunayTriangulation
 {
-    public static class DTriangulation
+    /*public static class DTriangulation
     {
         public static List<Edge> Triangulate(Graph graph)
         {
@@ -123,7 +123,7 @@ namespace DelaunayTriangulation
 
             return edges;
         }
-    }
+    }*/
 
     namespace Objects2D
     {
@@ -159,6 +159,7 @@ namespace DelaunayTriangulation
             {
                 A = a;
                 B = b;
+                
             }
 
             public float Distance => Vector2.Distance(A.Vertex.Position, B.Vertex.Position);
