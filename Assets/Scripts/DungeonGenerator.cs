@@ -354,7 +354,6 @@ public class DungeonGenerator : MonoBehaviour
 
         Vertex vertex = new Vertex(new Vector2(doorSize.x + (float)doorSize.width / 2,
             doorSize.y + (float)doorSize.height / 2));
-        DebugDrawingBatcher.BatchCall("Doors", () => { AlgorithmsUtils.DebugRectInt(doorSize, Color.blue); });
 
         doorGraphNode = new DoorNode(doorSize);
         doorGraphNode.ConnectedRooms[0] = room1;
