@@ -20,7 +20,7 @@ MonoBehaviour:
   MinimalRoomSize: {x: 8, y: 8}
   WallWidth: 2
   DoorSize: {x: 2, y: 2}
-  RoomsRemovePercentage: 50
+  RoomsRemovePercentage: 10
   Seed: 12
   RandomnessBoundaries: {x: 0.35, y: 0.65}
   RoomGenerationAwait: 1
