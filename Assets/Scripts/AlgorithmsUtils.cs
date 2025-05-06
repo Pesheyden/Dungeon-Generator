@@ -28,7 +28,7 @@ public class AlgorithmsUtils
         }
     }
     
-    public static void FillRectangle(char[,] array, RectInt area, char value)
+    public static void FillRectangle<T>(T[,] array, RectInt area, T value)
     {
         for (int i = area.y; i < area.y + area.height; i++)
         {
@@ -39,24 +39,32 @@ public class AlgorithmsUtils
         }
     }
     
-    public static void FillRectangleOutline(char[,] array, RectInt area, char value) 
+    public static void FillRectangleOutline<T>(T[,] array, RectInt area, T value, int width = 1) 
     { 
         
         int endX = area.x + area.width - 1;
         int endY = area.y + area.height - 1;
 
-        // Draw top and bottom borders
-        for (int x = area.x; x <= endX; x++)
+        for (int i = 0; i < width; i++)
         {
-            array[area.y, x] = value;
-            array[endY, x] = value;
-        }
+            // Draw top and bottom borders
+            for (int x = area.x; x <= endX; x++)
+            {
+                array[area.y, x] = value;
+                array[endY, x] = value;
+            }
 
-        // Draw left and right borders
-        for (int y = area.y + 1; y < endY; y++)
-        {
-            array[y, area.x] = value;
-            array[y, endX] = value;
+            // Draw left and right borders
+            for (int y = area.y + 1; y < endY; y++)
+            {
+                array[y, area.x] = value;
+                array[y, endX] = value;
+            }
+
+            area.x++;
+            area.y++;
+            endX--;
+            endY--;
         }
     }
 

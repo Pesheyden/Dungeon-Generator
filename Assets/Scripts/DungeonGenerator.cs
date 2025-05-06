@@ -4,12 +4,13 @@ using DungeonGeneration.Data;
 using DungeonGeneration.Graph;
 using NaughtyAttributes;
 using UnityEngine;
+using Utilities;
 using Random = System.Random;
 
-public class DungeonGenerator : MonoBehaviour
+public class DungeonGenerator : Singleton<DungeonGenerator>
 {
-    [Popup] [Tooltip("Settings config of the dungeon. To edit use ctrl + left click")] [SerializeField]
-    private DungeonGenerationSettingsSo _settings;
+    [Popup] [Tooltip("Settings config of the dungeon. To edit use ctrl + left click")]
+    public DungeonGenerationSettingsSo Settings;
 
     public List<RoomNode> Rooms;
     public Graph Graph;
@@ -48,7 +49,7 @@ public class DungeonGenerator : MonoBehaviour
         BatchRoomsDebug();
         BatchDoorsDebug();
 
-        await SplitDungeon(_settings.DungeonParameters, false);
+        await SplitDungeon(Settings.DungeonParameters, false);
         await CreateGraph();
 
         BatchFinalDungeonDebug();
@@ -92,7 +93,7 @@ public class DungeonGenerator : MonoBehaviour
             Rooms.Add(newRoom2);
             doHorizontalSplit = !doHorizontalSplit;
 
-            await Task.Delay(_settings.RoomGenerationAwait);
+            await Task.Delay(Settings.RoomGenerationAwait);
         }
     }
 
@@ -109,25 +110,25 @@ public class DungeonGenerator : MonoBehaviour
         }
 
         //Check room sizes
-        if (newRooms.Item1.height <= _settings.MinimalRoomSize.y ||
-            newRooms.Item2.height <= _settings.MinimalRoomSize.y)
+        if (newRooms.Item1.height <= Settings.MinimalRoomSize.y ||
+            newRooms.Item2.height <= Settings.MinimalRoomSize.y)
         {
             newRooms = VerticalSplit(room.Dimensions, randomNumber);
 
-            if (newRooms.Item1.width <= _settings.MinimalRoomSize.x ||
-                newRooms.Item2.width <= _settings.MinimalRoomSize.x)
+            if (newRooms.Item1.width <= Settings.MinimalRoomSize.x ||
+                newRooms.Item2.width <= Settings.MinimalRoomSize.x)
             {
                 return false;
             }
         }
 
-        if (newRooms.Item1.width <= _settings.MinimalRoomSize.x ||
-            newRooms.Item2.width <= _settings.MinimalRoomSize.x)
+        if (newRooms.Item1.width <= Settings.MinimalRoomSize.x ||
+            newRooms.Item2.width <= Settings.MinimalRoomSize.x)
         {
             newRooms = HorizontalSplit(room.Dimensions, randomNumber);
 
-            if (newRooms.Item1.height <= _settings.MinimalRoomSize.y ||
-                newRooms.Item2.height <= _settings.MinimalRoomSize.y)
+            if (newRooms.Item1.height <= Settings.MinimalRoomSize.y ||
+                newRooms.Item2.height <= Settings.MinimalRoomSize.y)
             {
                 return false;
             }
@@ -137,38 +138,38 @@ public class DungeonGenerator : MonoBehaviour
 
         (RectInt, RectInt) HorizontalSplit(RectInt roomNode, float f)
         {
-            int newHeight = (int)Mathf.Lerp(roomNode.height * _settings.RandomnessBoundaries.x,
-                roomNode.height * _settings.RandomnessBoundaries.y, f);
+            int newHeight = (int)Mathf.Lerp(roomNode.height * Settings.RandomnessBoundaries.x,
+                roomNode.height * Settings.RandomnessBoundaries.y, f);
 
             var newRoom1 = new RectInt(
                 roomNode.x,
                 roomNode.y,
                 roomNode.width,
-                newHeight + _settings.WallWidth / 2);
+                newHeight + Settings.WallWidth / 2);
 
             var newRoom2 = new RectInt(
                 roomNode.x,
-                roomNode.y + newHeight - _settings.WallWidth / 2,
+                roomNode.y + newHeight - Settings.WallWidth / 2,
                 roomNode.width,
-                roomNode.height - newHeight + _settings.WallWidth / 2);
+                roomNode.height - newHeight + Settings.WallWidth / 2);
             return (newRoom1, newRoom2);
         }
 
         (RectInt, RectInt) VerticalSplit(RectInt startRoom1, float randomNumber1)
         {
-            int newWidth = (int)Mathf.Lerp(startRoom1.width * _settings.RandomnessBoundaries.x,
-                startRoom1.width * _settings.RandomnessBoundaries.y, randomNumber1);
+            int newWidth = (int)Mathf.Lerp(startRoom1.width * Settings.RandomnessBoundaries.x,
+                startRoom1.width * Settings.RandomnessBoundaries.y, randomNumber1);
 
             var newRoom1 = new RectInt(
                 startRoom1.x,
                 startRoom1.y,
-                newWidth + _settings.WallWidth / 2,
+                newWidth + Settings.WallWidth / 2,
                 startRoom1.height);
 
             var newRoom2 = new RectInt(
-                startRoom1.x + newWidth - _settings.WallWidth / 2,
+                startRoom1.x + newWidth - Settings.WallWidth / 2,
                 startRoom1.y,
-                startRoom1.width - newWidth + _settings.WallWidth / 2,
+                startRoom1.width - newWidth + Settings.WallWidth / 2,
                 startRoom1.height);
             return (newRoom1, newRoom2);
         }
@@ -220,7 +221,7 @@ public class DungeonGenerator : MonoBehaviour
         roomNodes.Sort((a, b) =>
             (a.Dimensions.width * a.Dimensions.height).CompareTo(b.Dimensions.width * b.Dimensions.height));
 
-        for (int i = 0; i < roomNodes.Count * _settings.RoomsRemovePercentage / 100; i++)
+        for (int i = 0; i < roomNodes.Count * Settings.RoomsRemovePercentage / 100; i++)
         {
             if (!roomNodes[i].CanBeRemovedWithoutConnectionsSeparation(roomNodes))
                 continue;
@@ -228,7 +229,7 @@ public class DungeonGenerator : MonoBehaviour
             roomNodes[i].ClearConnections();
             roomNodes.RemoveAt(i);
 
-            await Task.Delay(_settings.GraphFilteringAwait);
+            await Task.Delay(Settings.GraphFilteringAwait);
         }
 
         Rooms = roomNodes;
@@ -259,7 +260,7 @@ public class DungeonGenerator : MonoBehaviour
                 }
             }
 
-            await Task.Delay(_settings.GraphGenerationAwait);
+            await Task.Delay(Settings.GraphGenerationAwait);
             discoveredWithChildren.Remove(room);
             room = discoveredWithChildren[0];
         }
@@ -274,7 +275,7 @@ public class DungeonGenerator : MonoBehaviour
         //Check the intersection orientation and then create a door
         if (intersect.width > intersect.height)
         {
-            if (intersect.width - _settings.WallWidth * 2 < _settings.DoorSize.x)
+            if (intersect.width - Settings.WallWidth * 2 < Settings.DoorSize.x)
             {
                 doorGraphNode = null;
                 return false;
@@ -284,7 +285,7 @@ public class DungeonGenerator : MonoBehaviour
         }
         else
         {
-            if (intersect.height - _settings.WallWidth * 2 < _settings.DoorSize.y)
+            if (intersect.height - Settings.WallWidth * 2 < Settings.DoorSize.y)
             {
                 doorGraphNode = null;
                 return false;
@@ -305,12 +306,12 @@ public class DungeonGenerator : MonoBehaviour
             doorSize = new RectInt
             (
                 (int)Mathf.Clamp(
-                    Mathf.Lerp(rectInt.x + _settings.WallWidth,
-                        rectInt.x + rectInt.width - _settings.WallWidth * 2, f),
-                    rectInt.x + _settings.WallWidth, rectInt.x + _settings.WallWidth),
+                    Mathf.Lerp(rectInt.x + Settings.WallWidth,
+                        rectInt.x + rectInt.width - Settings.WallWidth * 2, f),
+                    rectInt.x + Settings.WallWidth, rectInt.x + Settings.WallWidth),
                 rectInt.y,
-                _settings.DoorSize.x,
-                _settings.DoorSize.y
+                Settings.DoorSize.x,
+                Settings.DoorSize.y
             );
             return doorSize;
         }
@@ -321,11 +322,11 @@ public class DungeonGenerator : MonoBehaviour
             (
                 i.x,
                 (int)Mathf.Clamp(
-                    Mathf.Lerp(i.y + _settings.WallWidth,
-                        i.y + i.height - _settings.WallWidth * 2, random1),
-                    i.y + _settings.WallWidth, i.y + i.height - _settings.WallWidth * 2),
-                _settings.DoorSize.x,
-                _settings.DoorSize.y
+                    Mathf.Lerp(i.y + Settings.WallWidth,
+                        i.y + i.height - Settings.WallWidth * 2, random1),
+                    i.y + Settings.WallWidth, i.y + i.height - Settings.WallWidth * 2),
+                Settings.DoorSize.x,
+                Settings.DoorSize.y
             );
             return doorSize;
         }
@@ -335,7 +336,7 @@ public class DungeonGenerator : MonoBehaviour
     {
         Rooms = new();
         Graph = new Graph();
-        _random = new Random(_settings.Seed);
+        _random = new Random(Settings.Seed);
 
         DebugDrawingBatcher.ClearCalls();
     }

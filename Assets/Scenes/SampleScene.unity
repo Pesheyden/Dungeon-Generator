@@ -481,6 +481,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1561963206}
   - component: {fileID: 1561963205}
+  - component: {fileID: 1561963207}
   m_Layer: 0
   m_Name: Dungeon generator
   m_TagString: Untagged
@@ -500,8 +501,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 620f5d271cccb4342bc05fcf750491c3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _settings: {fileID: 11400000, guid: 6f25bc0782761474d99c0f441796d653, type: 2}
-  Rooms: []
+  Settings: {fileID: 11400000, guid: 6f25bc0782761474d99c0f441796d653, type: 2}
 --- !u!4 &1561963206
 Transform:
   m_ObjectHideFlags: 0
@@ -517,6 +517,35 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1561963207
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1561963204}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 498d81f7dcd2fb64f9342cf4989dae94, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _tilesPrefabs:
+  - {fileID: 581239032852185166, guid: 80481ead82b54914e89028969d060c85, type: 3}
+  - {fileID: 8857524489237409923, guid: bdb27392f831c6847b07269679d2e718, type: 3}
+  - {fileID: 6223520050470445811, guid: bbdd7a665d302f6438079dbb578eaeb4, type: 3}
+  - {fileID: 4560905959867481412, guid: 39693940b43867b4d8b097265ce63215, type: 3}
+  - {fileID: 1576303305027821457, guid: 47bf94466e92a74438cdbc016cb3175b, type: 3}
+  - {fileID: 4870284171863354037, guid: 15c49c34c27251d49a0381dae2d66716, type: 3}
+  - {fileID: 7719084525780010998, guid: 5e6a884f23a4e654598ead640da8420a, type: 3}
+  - {fileID: 5023276720851179308, guid: b9d1b1a3081f35c45891f226f94d18dc, type: 3}
+  - {fileID: 3301769187504224214, guid: 78d7b21b283f2894c84f9b89bf5fbc09, type: 3}
+  - {fileID: 2768641558603106305, guid: 46d9fbc07c886a743b7e1f73e7bcd805, type: 3}
+  - {fileID: 1871283015121294097, guid: 47a60117d2735164c9430e3546a39247, type: 3}
+  - {fileID: 2365096869446437652, guid: 9a97c3e4c1c0e3140a2e4136a0262aba, type: 3}
+  - {fileID: 2250049217425438644, guid: 6b20e0bd4eb6edc438cf42f1f9108a23, type: 3}
+  - {fileID: 4941351328298874853, guid: 12877ed28d37e734db73d91ee3c3c7a2, type: 3}
+  - {fileID: 6588363772236805592, guid: 72b663b3aff52fd48b300918b2ef47bf, type: 3}
+  - {fileID: 4910172390668742014, guid: 48a3028f3255c764b9371c15b1c0d567, type: 3}
 --- !u!1 &1670254477
 GameObject:
   m_ObjectHideFlags: 0
