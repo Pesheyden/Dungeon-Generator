@@ -17,7 +17,7 @@ MonoBehaviour:
     y: 0
     width: 100
     height: 100
-  MinimalRoomSize: {x: 14, y: 14}
+  MinimalRoomSize: {x: 9, y: 9}
   WallWidth: 1
   DoorSize: {x: 1, y: 1}
   RoomsRemovePercentage: 25

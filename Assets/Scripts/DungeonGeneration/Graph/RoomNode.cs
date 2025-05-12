@@ -30,6 +30,17 @@ namespace DungeonGeneration.Graph
             return connectedRooms;
         }
 
+        public DoorNode GetDoorConnectingToRoom(RoomNode roomNode)
+        {
+            foreach (var door in DoorNodes)
+            {
+                if (door.GetOtherRoom(this) == roomNode)
+                    return door;
+            }
+
+            return null;
+        }
+
         public void ClearConnections()
         {
             foreach (var door in DoorNodes)

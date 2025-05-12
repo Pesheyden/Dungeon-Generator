@@ -14,7 +14,6 @@ public class DungeonFiller : MonoBehaviour
     [SerializeField] private int _floodFillAwaitTime = 1; 
     [SerializeField] private int _wallCreationAwaitTime = 1;
     [SerializeField] private WallDebugMode _wallDebugMode;
-    [SerializeField] private int _minimalRoomSizeToAddColumns;
     [SerializeField] private int _minimalHeightForColumn;
     [SerializeField] private int _minimalWidthForColumn;
     [SerializeField] private int _columnsSize;
@@ -69,10 +68,11 @@ public class DungeonFiller : MonoBehaviour
             AlgorithmsUtils.FillRectangle(_dungeonRoomsMap, dungeonRooms[i].Dimensions, i);
             AlgorithmsUtils.FillRectangleOutline(_dungeonTileMap, dungeonRooms[i].Dimensions, 1, DungeonGenerator.Instance.Settings.WallWidth);
 
-            if (dungeonRooms[i].Dimensions.height >= _minimalRoomSizeToAddColumns &&
-                dungeonRooms[i].Dimensions.width >= _minimalRoomSizeToAddColumns)
+            if (dungeonRooms[i].Dimensions.height > _minimalHeightForColumn  &&
+                dungeonRooms[i].Dimensions.width > _minimalWidthForColumn)
             {
                 var columns = CreateColumnsFromRoom(dungeonRooms[i].Dimensions);
+                Debug.Log(1);
                 foreach (var column in columns)
                 {
                     AlgorithmsUtils.FillRectangle(_dungeonTileMap, column, 1);
@@ -93,12 +93,16 @@ public class DungeonFiller : MonoBehaviour
 
     private List<RectInt> CreateColumnsFromRoom(RectInt d)
     {
+        List<RectInt> columns = new List<RectInt>();
         int columnH = (int)Mathf.Ceil((float)(d.height - DungeonGenerator.Instance.Settings.WallWidth * 2) / _minimalHeightForColumn);
         int columnW = (int)Mathf.Ceil((float)(d.width - DungeonGenerator.Instance.Settings.WallWidth * 2) / _minimalWidthForColumn);
+        if (columnH <= 0 || columnW <= 0)
+            return columns;
+        
         float distanceH = (float)(d.height - DungeonGenerator.Instance.Settings.WallWidth * 2) / (columnH + 1);
         float distanceW = (float)(d.width - DungeonGenerator.Instance.Settings.WallWidth * 2) / (columnW + 1);
 
-        List<RectInt> columns = new List<RectInt>();
+
 
         for (int i = 1; i <= columnH ; i++)
         {
@@ -162,11 +166,11 @@ public class DungeonFiller : MonoBehaviour
 
     private async Task Fill(Vector3 point,List<Vector3> discovered)
     {
+        await Task.Delay(_floodFillAwaitTime,Application.exitCancellationToken);
         if (point.z > _dungeonTileMap.GetLength(0) ||
             point.x > _dungeonTileMap.GetLength(1) || discovered.Contains(point))
             return;
-
-        Debug.Log(point);
+        
         var tile = _dungeonTileMap[(int)point.z, (int)point.x];
         discovered.Add(point);
 
@@ -177,7 +181,7 @@ public class DungeonFiller : MonoBehaviour
         floor.transform.parent = _dungeonRoomsTransforms[_dungeonRoomsMap[(int)point.z, (int)point.x]];
         floor.name = $"Floor_{point.x},{point.z}";
 
-        await Task.Delay(_floodFillAwaitTime,Application.exitCancellationToken);
+
         List<Task> tasks = new List<Task>();
         tasks.Add(Fill(new Vector3(point.x + 1,point.y,point.z),discovered));
         tasks.Add(Fill(new Vector3(point.x - 1,point.y,point.z),discovered));
@@ -208,9 +212,9 @@ public class DungeonFiller : MonoBehaviour
     
     private async Task SpawnWalls()
     {
-        for (int y = 1; y < _dungeonTileMap.GetLength(0) - 1; y++)
+        for (int y = 1; y < _dungeonTileMap.GetLength(0); y++)
         {
-            for (int x = 1; x < _dungeonTileMap.GetLength(1) - 1; x++)
+            for (int x = 1; x < _dungeonTileMap.GetLength(1); x++)
             {
                 if(_dungeonTileMap[y, x] < 0 || _dungeonTileMap[y - 1, x] < 0 || _dungeonTileMap[y, x - 1] < 0 || _dungeonTileMap[y - 1, x - 1] < 0)
                     continue;
