@@ -23,7 +23,7 @@ MonoBehaviour:
   RoomsRemovePercentage: 10
   Seed: 12
   RandomnessBoundaries: {x: 0.35, y: 0.65}
-  RoomGenerationAwait: 1
-  GraphGenerationAwait: 1
-  DoorsGenerationAwait: 1
-  GraphFilteringAwait: 1
+  RoomGenerationAwait: 0
+  GraphGenerationAwait: 0
+  DoorsGenerationAwait: 0
+  GraphFilteringAwait: 0

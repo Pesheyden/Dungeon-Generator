@@ -529,6 +529,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 498d81f7dcd2fb64f9342cf4989dae94, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _debugPrefabs:
+  - {fileID: 3592223935331312352, guid: 8fb034c64de68ea499e05638c37dde65, type: 3}
+  - {fileID: 3530688448801426913, guid: 872b57fa48f931d4fafdea46c62a599e, type: 3}
   _tilesPrefabs:
   - {fileID: 581239032852185166, guid: 80481ead82b54914e89028969d060c85, type: 3}
   - {fileID: 8857524489237409923, guid: bdb27392f831c6847b07269679d2e718, type: 3}

@@ -21,12 +21,20 @@ PrefabInstance:
       value: 01_OuterCornerWall
       objectReference: {fileID: 0}
     - target: {fileID: 2689349476717017593, guid: 727d40579ab9b5243be7bea018778fee, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 75
+      objectReference: {fileID: 0}
+    - target: {fileID: 2689349476717017593, guid: 727d40579ab9b5243be7bea018778fee, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 75
+      objectReference: {fileID: 0}
+    - target: {fileID: 2689349476717017593, guid: 727d40579ab9b5243be7bea018778fee, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.5
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2689349476717017593, guid: 727d40579ab9b5243be7bea018778fee, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.5
+      value: 0.375
       objectReference: {fileID: 0}
     - target: {fileID: 6936267214585133961, guid: 727d40579ab9b5243be7bea018778fee, type: 3}
       propertyPath: m_LocalPosition.x
