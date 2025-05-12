@@ -4,6 +4,7 @@ using DungeonGeneration.Data;
 using DungeonGeneration.Graph;
 using NaughtyAttributes;
 using UnityEngine;
+using UnityEngine.Events;
 using Utilities;
 using Random = System.Random;
 
@@ -14,6 +15,8 @@ public class DungeonGenerator : Singleton<DungeonGenerator>
 
     public List<RoomNode> Rooms;
     public Graph Graph;
+
+    public UnityEvent OnDungeonCreated; 
 
     private Random _random;
 
@@ -53,6 +56,9 @@ public class DungeonGenerator : Singleton<DungeonGenerator>
         await CreateGraph();
 
         BatchFinalDungeonDebug();
+        
+        OnDungeonCreated.Invoke();
+        
         Debug.Log(Time.realtimeSinceStartup);
     }
 
@@ -93,7 +99,7 @@ public class DungeonGenerator : Singleton<DungeonGenerator>
             Rooms.Add(newRoom2);
             doHorizontalSplit = !doHorizontalSplit;
 
-            await Task.Delay(Settings.RoomGenerationAwait);
+            await Task.Delay(Settings.RoomGenerationAwait,Application.exitCancellationToken);
         }
     }
 
@@ -152,6 +158,10 @@ public class DungeonGenerator : Singleton<DungeonGenerator>
                 roomNode.y + newHeight - Settings.WallWidth / 2,
                 roomNode.width,
                 roomNode.height - newHeight + Settings.WallWidth / 2);
+
+            if (Settings.WallWidth % 2 != 0)
+                newRoom1.height += 1;
+            
             return (newRoom1, newRoom2);
         }
 
@@ -171,6 +181,10 @@ public class DungeonGenerator : Singleton<DungeonGenerator>
                 startRoom1.y,
                 startRoom1.width - newWidth + Settings.WallWidth / 2,
                 startRoom1.height);
+            
+            if (Settings.WallWidth % 2 != 0)
+                newRoom1.width += 1;
+            
             return (newRoom1, newRoom2);
         }
     }
@@ -229,7 +243,7 @@ public class DungeonGenerator : Singleton<DungeonGenerator>
             roomNodes[i].ClearConnections();
             roomNodes.RemoveAt(i);
 
-            await Task.Delay(Settings.GraphFilteringAwait);
+            await Task.Delay(Settings.GraphFilteringAwait,Application.exitCancellationToken);
         }
 
         Rooms = roomNodes;
@@ -260,7 +274,7 @@ public class DungeonGenerator : Singleton<DungeonGenerator>
                 }
             }
 
-            await Task.Delay(Settings.GraphGenerationAwait);
+            await Task.Delay(Settings.GraphGenerationAwait,Application.exitCancellationToken);
             discoveredWithChildren.Remove(room);
             room = discoveredWithChildren[0];
         }

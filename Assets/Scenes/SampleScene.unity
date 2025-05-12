@@ -502,6 +502,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Settings: {fileID: 11400000, guid: 6f25bc0782761474d99c0f441796d653, type: 2}
+  OnDungeonCreated:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!4 &1561963206
 Transform:
   m_ObjectHideFlags: 0
@@ -532,6 +535,13 @@ MonoBehaviour:
   _debugPrefabs:
   - {fileID: 3592223935331312352, guid: 8fb034c64de68ea499e05638c37dde65, type: 3}
   - {fileID: 3530688448801426913, guid: 872b57fa48f931d4fafdea46c62a599e, type: 3}
+  _floodFillAwaitTime: 1
+  _wallCreationAwaitTime: 1
+  _wallDebugMode: 0
+  _minimalRoomSizeToAddColumns: 8
+  _minimalHeightForColumn: 16
+  _minimalWidthForColumn: 16
+  _columnsSize: 2
   _tilesPrefabs:
   - {fileID: 581239032852185166, guid: 80481ead82b54914e89028969d060c85, type: 3}
   - {fileID: 8857524489237409923, guid: bdb27392f831c6847b07269679d2e718, type: 3}

@@ -17,13 +17,13 @@ MonoBehaviour:
     y: 0
     width: 100
     height: 100
-  MinimalRoomSize: {x: 8, y: 8}
-  WallWidth: 2
-  DoorSize: {x: 2, y: 2}
-  RoomsRemovePercentage: 10
+  MinimalRoomSize: {x: 14, y: 14}
+  WallWidth: 1
+  DoorSize: {x: 1, y: 1}
+  RoomsRemovePercentage: 25
   Seed: 12
   RandomnessBoundaries: {x: 0.35, y: 0.65}
-  RoomGenerationAwait: 0
-  GraphGenerationAwait: 0
-  DoorsGenerationAwait: 0
-  GraphFilteringAwait: 0
+  RoomGenerationAwait: 5
+  GraphGenerationAwait: 5
+  DoorsGenerationAwait: 5
+  GraphFilteringAwait: 5
