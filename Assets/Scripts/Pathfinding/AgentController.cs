@@ -1,7 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using NaughtyAttributes;
+using Unity.AI.Navigation;
 using UnityEngine;
+using UnityEngine.AI;
 using Utilities;
 
 /// <summary>
@@ -16,11 +18,11 @@ public class AgentController : MonoBehaviour
 
     [SerializeField] private float _moveSpeed;
     [SerializeField] private PathFindingType _pathFindingType;
+    [SerializeField] private NavMeshSurface _navMeshSurface;
 
-    /// <summary>
-    /// Flag indicating whether the agent is currently moving.
-    /// </summary>
+
     private bool _isMoving;
+    private NavMeshAgent _agent;
 
     /// <summary>
     /// Toggles debug visualization for the agent's current path using the debug batcher.
@@ -61,7 +63,13 @@ public class AgentController : MonoBehaviour
     /// <summary>
     /// Teleports the agent to the player spawn point defined in the dungeon.
     /// </summary>
-    public void SpawnPlayer() => transform.position = DungeonFiller.Instance.PlayerSpawnPoint;
+    public void InitializePlayer()
+    {
+        _navMeshSurface.BuildNavMesh();
+        _agent = GetComponent<NavMeshAgent>();
+        _agent.speed = _moveSpeed;
+        transform.position = DungeonFiller.Instance.PlayerSpawnPoint;
+    }
 
     /// <summary>
     /// Commands the agent to move toward the given destination using a pathfinding algorithm.
@@ -74,14 +82,21 @@ public class AgentController : MonoBehaviour
             return;
 
         // Attempt to generate a path to the destination
-        var createdPath = PathFinder.FindPath(transform.position, destination, _pathFindingType);
-        if (createdPath == null)
+        if (_pathFindingType != PathFindingType.NavMesh)
+        {
+            _agent.enabled = false;
+            var createdPath = PathFinder.FindPath(transform.position, destination, _pathFindingType);
+            if (createdPath == null)
+                return;
+            Path = createdPath;
+            
+            // Start the coroutine that follows the path
+            StartCoroutine(FollowPathCoroutine(Path));
             return;
+        }
 
-        Path = createdPath;
-
-        // Start the coroutine that follows the path
-        StartCoroutine(FollowPathCoroutine(Path));
+        _agent.enabled = true;
+        _agent.SetDestination(destination);
     }
 
     /// <summary>

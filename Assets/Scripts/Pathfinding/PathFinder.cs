@@ -11,6 +11,11 @@ using UnityEngine;
 public enum PathFindingType
 {
     /// <summary>
+    /// Standard Unity NavMeshNavigation
+    /// </summary>
+    NavMesh,
+    
+    /// <summary>
     /// Standard A* pathfinding on a per-tile basis.
     /// </summary>
     AStar,
@@ -237,7 +242,7 @@ public static class PathFinder
     #region GroupPath
 
     /// <summary>
-    /// Runs a simple A*/Dijkstra-like algorithm to get the group (room) traversal path.
+    /// Runs a simple A*-like algorithm to get the group (room) traversal path.
     /// </summary>
     private static List<PathFindingTile> FindGroupPath(PathFindingTile start, PathFindingTile end)
     {

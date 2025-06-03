@@ -19,6 +19,7 @@ public class DungeonGenerator : Singleton<DungeonGenerator>
     public UnityEvent OnDungeonCreated; 
 
     private Random _random;
+    private float _starTime;
 
     #region DebugButtons
 
@@ -41,25 +42,28 @@ public class DungeonGenerator : Singleton<DungeonGenerator>
 
     private void Start()
     {
+
         GenerateDungeon();
     }
 
     [Button]
     private async void GenerateDungeon()
     {
+        _starTime = Time.realtimeSinceStartup;
         ResetValues();
 
         BatchRoomsDebug();
         BatchDoorsDebug();
 
         await SplitDungeon(Settings.DungeonParameters, false);
+        Debug.Log($"Room split: {Time.realtimeSinceStartup - _starTime}");
         await CreateGraph();
 
         BatchFinalDungeonDebug();
         
         OnDungeonCreated.Invoke();
         
-        Debug.Log(Time.realtimeSinceStartup);
+        Debug.Log($"Full dungeon generation: {Time.realtimeSinceStartup - _starTime}");
     }
 
     #region BSP
