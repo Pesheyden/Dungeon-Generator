@@ -41,7 +41,24 @@ public class DungeonFiller : Singleton<DungeonFiller>
 
     #endregion
 
-    private void Start()
+
+
+    /// <summary>
+    /// Initiates the dungeon filling process:
+    /// tile mapping, room transforms, floor and wall spawning.
+    /// </summary>
+    [Button]
+    public async void FillTheDungeon()
+    {
+        Initialize();
+        CreteTileMap();
+        PathFinder.Initialize(_dungeonTileMap, _dungeonRoomsMap, _dungeonGraph);
+        CreateRoomsTransforms();
+        await FloodFillFloor();
+        await SpawnWalls();
+        OnDungeonFilled?.Invoke();
+    }
+    private void Initialize()
     {
         _dungeonGraph = DungeonGenerator.Instance.Graph;
         _dungeonTileMap = new int[
@@ -53,21 +70,6 @@ public class DungeonFiller : Singleton<DungeonFiller>
             DungeonGenerator.Instance.Settings.DungeonParameters.width];
 
         DungeonGenerator.Instance.OnDungeonCreated.AddListener(FillTheDungeon);
-    }
-
-    /// <summary>
-    /// Initiates the dungeon filling process:
-    /// tile mapping, room transforms, floor and wall spawning.
-    /// </summary>
-    [Button]
-    public async void FillTheDungeon()
-    {
-        CreteTileMap();
-        PathFinder.Initialize(_dungeonTileMap, _dungeonRoomsMap, _dungeonGraph);
-        CreateRoomsTransforms();
-        await FloodFillFloor();
-        await SpawnWalls();
-        OnDungeonFilled?.Invoke();
     }
 
     /// <summary>

@@ -15,8 +15,8 @@ MonoBehaviour:
   WallCreationAwaitTime: 1
   FloodFillAwaitTime: 1
   WallDebugMode: 1
-  MinimalHeightForColumn: 8
-  MinimalWidthForColumn: 8
+  MinimalHeightForColumn: 10
+  MinimalWidthForColumn: 10
   ColumnsSize: 2
   TilesPrefabs:
   - {fileID: 581239032852185166, guid: 80481ead82b54914e89028969d060c85, type: 3}

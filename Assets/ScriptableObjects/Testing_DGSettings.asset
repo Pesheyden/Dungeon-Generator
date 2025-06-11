@@ -15,15 +15,15 @@ MonoBehaviour:
   DungeonParameters:
     x: 0
     y: 0
-    width: 100
-    height: 100
-  MinimalRoomSize: {x: 9, y: 9}
+    width: 50
+    height: 50
+  MinimalRoomSize: {x: 5, y: 5}
   WallWidth: 1
   DoorSize: {x: 1, y: 1}
   RoomsRemovePercentage: 25
   Seed: 12
   RandomnessBoundaries: {x: 0.35, y: 0.65}
-  RoomGenerationAwait: 5
-  GraphGenerationAwait: 5
-  DoorsGenerationAwait: 5
-  GraphFilteringAwait: 5
+  RoomGenerationAwait: 0
+  GraphGenerationAwait: 0
+  DoorsGenerationAwait: 0
+  GraphFilteringAwait: 0

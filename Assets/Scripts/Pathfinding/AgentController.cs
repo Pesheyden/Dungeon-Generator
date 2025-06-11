@@ -1,7 +1,9 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using NaughtyAttributes;
 using Unity.AI.Navigation;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.AI;
 using Utilities;
@@ -23,7 +25,9 @@ public class AgentController : MonoBehaviour
 
     private bool _isMoving;
     private NavMeshAgent _agent;
+    private List<PathFinder.DebugTileData> _discoveredPointsDebugData;
 
+    [SerializeField] private bool _debugDiscoveredTilesCosts;
     /// <summary>
     /// Toggles debug visualization for the agent's current path using the debug batcher.
     /// </summary>
@@ -85,7 +89,7 @@ public class AgentController : MonoBehaviour
         if (_pathFindingType != PathFindingType.NavMesh)
         {
             _agent.enabled = false;
-            var createdPath = PathFinder.FindPath(transform.position, destination, _pathFindingType);
+            var createdPath = PathFinder.FindPath(transform.position, destination, _pathFindingType,out _discoveredPointsDebugData);
             if (createdPath == null)
                 return;
             Path = createdPath;
@@ -127,5 +131,19 @@ public class AgentController : MonoBehaviour
         }
 
         _isMoving = false;
+    }
+
+    private void OnDrawGizmos()
+    {
+        if(!_debugDiscoveredTilesCosts)
+            return;
+        if(_discoveredPointsDebugData == null)
+            return;
+        foreach (var point in _discoveredPointsDebugData)
+        {
+            Handles.Label(point.Position, point.TotalCost.ToString());
+            Handles.Label(new Vector3(point.Position.x,point.Position.y,point.Position.z + .25f), point.Cost.ToString());
+            Handles.Label(new Vector3(point.Position.x,point.Position.y,point.Position.z - .25f), point.Heuristic.ToString());
+        }
     }
 }

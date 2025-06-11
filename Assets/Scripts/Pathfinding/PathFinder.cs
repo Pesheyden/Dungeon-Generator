@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DungeonGeneration.Graph;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 
 /// <summary>
@@ -42,7 +43,23 @@ public static class PathFinder
     /// </summary>
     public static int[,] RoomTileMap;
 
-    private static List<PathFindingTile> _debugDiscoveredPoints = new List<PathFindingTile>();
+    private static List<DebugTileData> _debugDiscoveredPoints = new List<DebugTileData>();
+
+    public class DebugTileData
+    {
+        public Vector3 Position;
+        public float Cost;
+        public float Heuristic;
+        public float TotalCost;
+
+        public DebugTileData(Vector3 position, float cost, float heuristic)
+        {
+            Position = position;
+            Cost = cost;
+            Heuristic = heuristic;
+            TotalCost = cost + heuristic;
+        }
+    }
 
     #region Initialization
 
@@ -158,7 +175,7 @@ public static class PathFinder
         {
             foreach (var point in _debugDiscoveredPoints)
             {
-                DebugExtension.DebugWireSphere(point.Position, Color.magenta, 0.25f);
+                DebugExtension.DebugWireSphere(point.Position, Color.magenta,0.4f);
             }
         });
     }
@@ -174,7 +191,7 @@ public static class PathFinder
     /// <param name="end">Target world position.</param>
     /// <param name="pathFindingType">Pathfinding strategy to use.</param>
     /// <returns>List of waypoints (world positions) from start to end, or empty list if no path.</returns>
-    public static List<Vector3> FindPath(Vector3 start, Vector3 end, PathFindingType pathFindingType)
+    public static List<Vector3> FindPath(Vector3 start, Vector3 end, PathFindingType pathFindingType, out List<DebugTileData> discoveredPointsDebugData)
     {
         List<Vector3> result = new List<Vector3>();
         _debugDiscoveredPoints.Clear();
@@ -191,6 +208,7 @@ public static class PathFinder
                 throw new ArgumentOutOfRangeException(nameof(pathFindingType), pathFindingType, null);
         }
 
+        discoveredPointsDebugData = _debugDiscoveredPoints;
         return result;
     }
 
@@ -336,6 +354,7 @@ public static class PathFinder
     private static List<Vector3> FindPath(PathFindingTile start, PathFindingTile end)
     {
         HashSet<PathFindingTile> discovered = new();
+        HashSet<DebugTileData> debugTiles = new();
         List<(PathFindingTile node, float priority)> q = new();
         Dictionary<PathFindingTile, PathFindingTile> p = new();
         Dictionary<PathFindingTile, float> c = new();
@@ -344,24 +363,26 @@ public static class PathFinder
 
         while (q.Count > 0)
         {
-            var v = q[^1];
+            var v = q[q.Count - 1];
             q.RemoveAt(q.Count - 1);
 
             if (v.node == end)
             {
-                _debugDiscoveredPoints.AddRange(discovered);
+                _debugDiscoveredPoints.AddRange(debugTiles);
                 return ReconstructPathPart(p, start, end);
             }
 
-            if (!v.node.Walkable)
-                continue;
+
 
             foreach (var w in v.node.ConnectedTiles)
             {
                 if (!discovered.Add(w))
                     continue;
+                if (!w.Walkable)
+                    continue;
 
                 float newCost = v.priority + Cost(v.node.Position, w.Position);
+                debugTiles.Add(new DebugTileData(w.Position,newCost,Heuristic(w.Position, end.Position)));
                 if (!c.ContainsKey(w))
                 {
                     c[w] = newCost;
@@ -378,7 +399,7 @@ public static class PathFinder
             }
         }
 
-        _debugDiscoveredPoints = discovered.ToList();
+        _debugDiscoveredPoints.AddRange(debugTiles);
         return new List<Vector3>();
     }
 
@@ -432,8 +453,8 @@ public static class PathFinder
         return closestNode;
     }
 
-    private static float Cost(Vector3 from, Vector3 to) => Vector3.Distance(from, to);
-    private static float Heuristic(Vector3 from, Vector3 to) => Vector3.Distance(from, to);
+    private static float Cost(Vector3 from, Vector3 to) => 0.9f* Vector3.Distance(from, to);
+    private static float Heuristic(Vector3 from, Vector3 to) => 1.1f * Vector3.Distance(from, to);
 
     /// <summary>
     /// Gets a tile near the door connecting two groups (rooms).
